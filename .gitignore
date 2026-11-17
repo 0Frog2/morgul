@@ -1,0 +1,7 @@
+World/
+Exports/
+Backups/
+.local/
+app/_previous/
+__pycache__/
+*.pyc

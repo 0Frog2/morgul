@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Morgul</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050807">
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app" id="app">
+  <nav class="side" id="side">
+    <div class="brand"><img src="icon.svg" alt=""><span>Morgul</span><i id="saveState" class="save-state" data-s="ok"></i></div>
+    <div class="search-row"><button class="search-btn" id="searchBtn"><span data-t="Search">Search</span><kbd>Ctrl K</kbd></button>
+      <button class="btn icon ghost nav-arrow" id="backBtn" title="Back (Alt+←)">‹</button><button class="btn icon ghost nav-arrow" id="fwdBtn" title="Forward (Alt+→)">›</button></div>
+    <div class="nav" id="nav"></div>
+    <div class="side-foot">
+      <button class="nav-item" id="captureBtn" title="Ctrl+Space"><i>＋</i><span data-t="Quick note">Quick note</span></button>
+      <button class="nav-item" id="aiToggle" title="Ctrl+J"><i>✦</i><span data-t="AI helper">AI helper</span></button>
+      <button class="nav-item" id="helpBtn"><i>?</i><span data-t="Help">Help</span></button>
+      <button class="nav-item" id="settingsBtn"><i>⚙</i><span data-t="Settings">Settings</span></button>
+    </div>
+  </nav>
+  <main class="panes" id="panes">
+    <section class="pane" id="pane0"></section>
+    <section class="pane" id="pane1" hidden></section>
+  </main>
+  <aside class="ai" id="ai" hidden></aside>
+</div>
+<div id="overlay"></div>
+<div id="toasts"></div>
+<div id="hover" class="hover-card" hidden></div>
+<div id="print" class="print-root"></div>
+<script src="core.js"></script>
+<script src="markdown.js"></script>
+<script src="checks.js"></script>
+<script src="entry.js"></script>
+<script src="views.js"></script>
+<script src="graph.js"></script>
+<script src="maps.js"></script>
+<script src="ai.js"></script>
+<script src="exporter.js"></script>
+<script src="changelog.js"></script>
+<script src="tools.js"></script>
+<script src="help.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
