@@ -768,6 +768,296 @@ def problem_report():
     ])
 
 
+# ---------------------------------------------------------------- compile: Word (.docx), e-book (.epub), Markdown
+# The page sends finished sections: [{"title", "level" (1 or 2), "text" (Markdown, secrets already removed),
+# "fields": [[label, value], ...], "images": [asset file names], "summary"}]. Only the standard library is used.
+from xml.sax.saxutils import escape as xesc
+
+
+def md_blocks(text):
+    """Very small Markdown reader: headings, scene breaks, lists, quotes, paragraphs. Returns [(kind, text, level)]."""
+    out, para = [], []
+
+    def flush():
+        if para:
+            out.append(("p", " ".join(x.strip() for x in para), 0))
+            para.clear()
+    for line in (text or "").replace("\r\n", "\n").split("\n"):
+        s = line.strip()
+        if not s:
+            flush()
+            continue
+        m = re.match(r"^(#{1,6})\s+(.*)$", s)
+        if m:
+            flush(); out.append(("h", m.group(2).strip(), len(m.group(1)))); continue
+        if re.match(r"^(\*\s*\*\s*\*|-{3,}|_{3,}|#)$", s):
+            flush(); out.append(("break", "", 0)); continue
+        m = re.match(r"^([-*+]|\d+[.)])\s+(.*)$", s)
+        if m:
+            flush(); out.append(("li", m.group(2), 0)); continue
+        if s.startswith(">"):
+            flush(); out.append(("quote", s.lstrip("> ").strip(), 0)); continue
+        if re.match(r"^!\[[^\]]*\]\([^)]*\)$", s):         # an image line inside the text: skipped here
+            continue
+        para.append(s)
+    flush()
+    return out
+
+
+def inline_runs(text):
+    """Split **bold**, *italic* and ***both*** into (text, bold, italic) runs."""
+    runs = []
+    for part in re.split(r"(\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|\*[^*\s][^*]*\*|_[^_\s][^_]*_)", text):
+        if not part:
+            continue
+        if part.startswith("***"):
+            runs.append((part[3:-3], True, True))
+        elif part.startswith("**"):
+            runs.append((part[2:-2], True, False))
+        elif part[0] in "*_" and part[-1] == part[0] and len(part) > 2:
+            runs.append((part[1:-1], False, True))
+        else:
+            runs.append((part, False, False))
+    return runs
+
+
+def image_size(p: Path):
+    """(width, height) in pixels for PNG, JPEG, GIF; None if unknown."""
+    try:
+        b = p.read_bytes()[:65536]
+        if b[:8] == b"\x89PNG\r\n\x1a\n":
+            return int.from_bytes(b[16:20], "big"), int.from_bytes(b[20:24], "big")
+        if b[:6] in (b"GIF87a", b"GIF89a"):
+            return int.from_bytes(b[6:8], "little"), int.from_bytes(b[8:10], "little")
+        if b[:2] == b"\xff\xd8":
+            i = 2
+            while i < len(b) - 9:
+                if b[i] != 0xFF:
+                    i += 1; continue
+                mk = b[i + 1]
+                if mk in (0xC0, 0xC1, 0xC2):
+                    return int.from_bytes(b[i + 7:i + 9], "big"), int.from_bytes(b[i + 5:i + 7], "big")
+                i += 2 + int.from_bytes(b[i + 2:i + 4], "big")
+    except OSError:
+        pass
+    return None
+
+
+def build_docx(path: Path, title, author, sections, kind):
+    """A real Word document: title page, chapters/entries with heading styles (so Word's navigation works),
+    page breaks before chapters, scene breaks, fields as tables, images."""
+    W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' \
+           'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' \
+           'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"'
+    body, rels, media = [], [], []
+    manuscript = kind == "manuscript"
+
+    def run(t, b=False, i=False):
+        pr = ("<w:b/>" if b else "") + ("<w:i/>" if i else "")
+        return f'<w:r>{"<w:rPr>" + pr + "</w:rPr>" if pr else ""}<w:t xml:space="preserve">{xesc(t)}</w:t></w:r>'
+
+    def para(text, style=None, align=None, runs=True, keep_break=False):
+        ppr = (f'<w:pStyle w:val="{style}"/>' if style else "") + (f'<w:jc w:val="{align}"/>' if align else "")
+        content = "".join(run(t, b, i) for t, b, i in inline_runs(text)) if runs else run(text)
+        return f'<w:p>{"<w:pPr>" + ppr + "</w:pPr>" if ppr else ""}{content}</w:p>'
+
+    def picture(fname):
+        p = ASSETS / fname
+        size = image_size(p) if p.is_file() else None
+        if not size or not size[0]:
+            return ""
+        n = len(media) + 1
+        ext = p.suffix.lower().lstrip(".").replace("jpg", "jpeg")
+        media.append((f"word/media/image{n}.{ext}", p))
+        rid = f"rIdImg{n}"
+        rels.append(f'<Relationship Id="{rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image{n}.{ext}"/>')
+        w = min(5.8 * 914400, size[0] * 9525)          # at most ~15 cm wide
+        h = int(w * size[1] / size[0])
+        w = int(w)
+        return (f'<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline><wp:extent cx="{w}" cy="{h}"/><wp:docPr id="{n}" name="Image {n}"/>'
+                f'<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="{n}" name="{xesc(fname)}"/><pic:cNvPicPr/></pic:nvPicPr>'
+                f'<pic:blipFill><a:blip r:embed="{rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{w}" cy="{h}"/></a:xfrm>'
+                f'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>')
+
+    # title page
+    body.append(para(title, "Title", "center", runs=False))
+    if author:
+        body.append(para(author, "Subtitle", "center", runs=False))
+    for s in sections:
+        lvl = 1 if s.get("level", 1) == 1 else 2
+        body.append(para(s.get("title") or "", f"Heading{lvl}", runs=False))
+        if s.get("kindLabel"):
+            body.append(para(s["kindLabel"], "TypeLabel", runs=False))
+        if s.get("fields"):
+            rows = "".join(f'<w:tr><w:tc><w:tcPr><w:tcW w:w="2600" w:type="dxa"/></w:tcPr>{para(k, "FieldName", runs=False)}</w:tc>'
+                           f'<w:tc><w:tcPr><w:tcW w:w="6400" w:type="dxa"/></w:tcPr>{"".join(para(line) for line in str(v).split(chr(10)) if line.strip()) or para("")}</w:tc></w:tr>'
+                           for k, v in s["fields"])
+            body.append(f'<w:tbl><w:tblPr><w:tblW w:w="9000" w:type="dxa"/><w:tblBorders><w:insideH w:val="single" w:sz="2" w:color="CCCCCC"/></w:tblBorders></w:tblPr>'
+                        f'<w:tblGrid><w:gridCol w:w="2600"/><w:gridCol w:w="6400"/></w:tblGrid>{rows}</w:tbl>')
+            body.append(para(""))
+        first = True
+        for kind_, text, level in md_blocks(s.get("text", "")):
+            if kind_ == "h":
+                body.append(para(text, "Heading3" if lvl == 2 or level > 1 else "Heading2", runs=False)); first = True
+            elif kind_ == "break":
+                body.append(para("*   *   *", "SceneBreak", "center", runs=False)); first = True
+            elif kind_ == "li":
+                body.append(para("•  " + text, "ListPara"))
+            elif kind_ == "quote":
+                body.append(para(text, "Quote"))
+            else:
+                body.append(para(text, "FirstPara" if (first and manuscript) else ("Body" if manuscript else "Normal"))); first = False
+        for f in s.get("images") or []:
+            body.append(picture(f))
+    sect = '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>'
+    document = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document {W_NS}><w:body>{"".join(body)}{sect}</w:body></w:document>'
+    serif = "Cambria"
+    styles = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="{serif}" w:hAnsi="{serif}" w:cs="{serif}"/><w:sz w:val="24"/><w:lang w:val="en-GB"/></w:rPr></w:rPrDefault>
+<w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="{360 if manuscript else 300}" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+<w:style w:type="paragraph" w:styleId="Body"><w:name w:val="Body Text First Indent"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="0"/><w:ind w:firstLine="425"/><w:jc w:val="both"/></w:pPr></w:style>
+<w:style w:type="paragraph" w:styleId="FirstPara"><w:name w:val="First Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="0"/><w:jc w:val="both"/></w:pPr></w:style>
+<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:before="3600" w:after="240"/><w:jc w:val="center"/></w:pPr><w:rPr><w:sz w:val="64"/><w:b/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Subtitle"><w:name w:val="Subtitle"/><w:basedOn w:val="Normal"/><w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:i/><w:sz w:val="32"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="FirstPara"/><w:pPr><w:pageBreakBefore/><w:keepNext/><w:spacing w:before="{1800 if manuscript else 240}" w:after="480"/>{'<w:jc w:val="center"/>' if manuscript else ""}<w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="40"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="360" w:after="120"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:sz w:val="30"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="80"/><w:outlineLvl w:val="2"/></w:pPr><w:rPr><w:b/><w:sz w:val="26"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="SceneBreak"><w:name w:val="Scene Break"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:before="240" w:after="240"/><w:jc w:val="center"/></w:pPr></w:style>
+<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:pPr><w:ind w:left="720"/></w:pPr><w:rPr><w:i/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="ListPara"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="40"/><w:ind w:left="567"/></w:pPr></w:style>
+<w:style w:type="paragraph" w:styleId="TypeLabel"><w:name w:val="Type Label"/><w:basedOn w:val="Normal"/><w:rPr><w:caps/><w:color w:val="7A7A7A"/><w:sz w:val="18"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="FieldName"><w:name w:val="Field Name"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="0"/></w:pPr><w:rPr><w:color w:val="666666"/><w:sz w:val="20"/></w:rPr></w:style>
+</w:styles>'''
+    exts = {m[0].rsplit(".", 1)[1] for m in media}
+    ctypes = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+              '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'
+              + "".join(f'<Default Extension="{e}" ContentType="image/{e}"/>' for e in sorted(exts)) +
+              '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+              '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+              '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>')
+    root_rels = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                 '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+                 '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>')
+    doc_rels = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                '<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' + "".join(rels) + '</Relationships>')
+    core = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" '
+            'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+            f'<dc:title>{xesc(title)}</dc:title><dc:creator>{xesc(author or "")}</dc:creator>'
+            f'<dcterms:created xsi:type="dcterms:W3CDTF">{time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}</dcterms:created></cp:coreProperties>')
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml", ctypes)
+        z.writestr("_rels/.rels", root_rels)
+        z.writestr("word/document.xml", document)
+        z.writestr("word/styles.xml", styles)
+        z.writestr("word/_rels/document.xml.rels", doc_rels)
+        z.writestr("docProps/core.xml", core)
+        for name, p in media:
+            z.write(p, name)
+
+
+def build_epub(path: Path, title, author, sections, kind, lang="en"):
+    """An EPUB 3 e-book (opens in Apple Books, Kobo, Google Play Books, Calibre; Kindle via Send to Kindle)."""
+    uid_ = "urn:uuid:" + str(uuid.uuid4())
+
+    def inline(t):
+        out = ""
+        for txt, b, i in inline_runs(t):
+            s = xesc(txt)
+            out += f"<b><i>{s}</i></b>" if b and i else f"<b>{s}</b>" if b else f"<i>{s}</i>" if i else s
+        return out
+    files, nav, imgs = [], [], {}
+    for n, s in enumerate(sections, 1):
+        h = f"h{1 if s.get('level', 1) == 1 else 2}"
+        parts = [f"<{h}>{xesc(s.get('title') or '')}</{h}>"]
+        if s.get("kindLabel"):
+            parts.append(f'<p class="type">{xesc(s["kindLabel"])}</p>')
+        if s.get("fields"):
+            parts.append("<table>" + "".join(f"<tr><th>{xesc(k)}</th><td>{'<br/>'.join(inline(x) for x in str(v).split(chr(10)) if x.strip())}</td></tr>" for k, v in s["fields"]) + "</table>")
+        first = True
+        for k, t, lv in md_blocks(s.get("text", "")):
+            if k == "h":
+                parts.append(f"<h3>{xesc(t)}</h3>"); first = True
+            elif k == "break":
+                parts.append('<p class="break">*   *   *</p>'); first = True
+            elif k == "li":
+                parts.append(f'<p class="li">• {inline(t)}</p>')
+            elif k == "quote":
+                parts.append(f"<blockquote><p>{inline(t)}</p></blockquote>")
+            else:
+                cls = ' class="first"' if first else ""
+                parts.append(f"<p{cls}>{inline(t)}</p>"); first = False
+        for f in s.get("images") or []:
+            p = ASSETS / f
+            if p.is_file() and p.suffix.lower() in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"):
+                key = imgs.setdefault(f, f"img{len(imgs) + 1}{p.suffix.lower()}")
+                parts.append(f'<div class="img"><img src="images/{key}" alt="{xesc(f)}"/></div>')
+        fname = f"s{n:04d}.xhtml"
+        files.append((fname, s.get("title") or "", "".join(parts)))
+        if s.get("level", 1) == 1 or kind == "manuscript":
+            nav.append((fname, s.get("title") or ""))
+    css = ("body{font-family:Georgia,serif;line-height:1.55;margin:0 4%}h1{text-align:center;margin:2.5em 0 1.5em;page-break-before:always}h2{margin-top:1.6em}"
+           "p{margin:0;text-indent:1.4em;text-align:justify}p.first,p.li,p.type,p.break{text-indent:0}p.break{text-align:center;margin:1em 0}"
+           "p.type{text-transform:uppercase;letter-spacing:.08em;font-size:.75em;color:#777}table{border-collapse:collapse;margin:.8em 0;font-size:.9em}"
+           "th{text-align:left;color:#666;font-weight:normal;padding:2px 12px 2px 0;vertical-align:top}blockquote{margin:.6em 1.5em;font-style:italic}"
+           ".img{text-align:center;margin:1em 0}.img img{max-width:100%}.title{text-align:center;margin-top:30%}.title h1{page-break-before:avoid}")
+    page = lambda t, b: (f'<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="{lang}" lang="{lang}">'
+                         f'<head><meta charset="utf-8"/><title>{xesc(t)}</title><link rel="stylesheet" href="style.css" type="text/css"/></head><body>{b}</body></html>')
+    mime = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml"}
+    manifest = ['<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>', '<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>',
+                '<item id="css" href="style.css" media-type="text/css"/>', '<item id="title" href="title.xhtml" media-type="application/xhtml+xml"/>']
+    manifest += [f'<item id="f{i}" href="{f}" media-type="application/xhtml+xml"/>' for i, (f, _, _) in enumerate(files)]
+    manifest += [f'<item id="i{i}" href="images/{k}" media-type="{mime[Path(k).suffix]}"/>' for i, k in enumerate(imgs.values())]
+    spine = '<itemref idref="title"/>' + "".join(f'<itemref idref="f{i}"/>' for i in range(len(files)))
+    opf = (f'<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" xml:lang="{lang}">'
+           f'<metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">{uid_}</dc:identifier><dc:title>{xesc(title)}</dc:title>'
+           f'<dc:creator>{xesc(author or "")}</dc:creator><dc:language>{lang}</dc:language><meta property="dcterms:modified">{time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}</meta></metadata>'
+           f'<manifest>{"".join(manifest)}</manifest><spine toc="ncx">{spine}</spine></package>')
+    navx = page(title, '<nav epub:type="toc" id="toc"><h1>Contents</h1><ol>' + "".join(f'<li><a href="{f}">{xesc(t)}</a></li>' for f, t in nav) + "</ol></nav>")
+    ncx = (f'<?xml version="1.0" encoding="UTF-8"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><head><meta name="dtb:uid" content="{uid_}"/></head>'
+           f'<docTitle><text>{xesc(title)}</text></docTitle><navMap>' + "".join(f'<navPoint id="n{i}" playOrder="{i + 1}"><navLabel><text>{xesc(t)}</text></navLabel><content src="{f}"/></navPoint>' for i, (f, t) in enumerate(nav)) + "</navMap></ncx>")
+    with zipfile.ZipFile(path, "w") as z:
+        z.writestr(zipfile.ZipInfo("mimetype"), "application/epub+zip", compress_type=zipfile.ZIP_STORED)   # must be first and uncompressed
+        z.writestr("META-INF/container.xml", '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>', zipfile.ZIP_DEFLATED)
+        z.writestr("OEBPS/content.opf", opf, zipfile.ZIP_DEFLATED)
+        z.writestr("OEBPS/nav.xhtml", navx, zipfile.ZIP_DEFLATED)
+        z.writestr("OEBPS/toc.ncx", ncx, zipfile.ZIP_DEFLATED)
+        z.writestr("OEBPS/style.css", css, zipfile.ZIP_DEFLATED)
+        z.writestr("OEBPS/title.xhtml", page(title, f'<div class="title"><h1>{xesc(title)}</h1><p class="first" style="text-align:center">{xesc(author or "")}</p></div>'), zipfile.ZIP_DEFLATED)
+        for f, t, b in files:
+            z.writestr(f"OEBPS/{f}", page(t, b), zipfile.ZIP_DEFLATED)
+        for f, k in imgs.items():
+            z.write(ASSETS / f, f"OEBPS/images/{k}", zipfile.ZIP_DEFLATED)
+
+
+def compile_book(b):
+    fmt = b.get("format")
+    title = (b.get("title") or "Untitled").strip()
+    author = (b.get("author") or "").strip()
+    kind = b.get("kind") or "manuscript"
+    sections = b.get("sections") or []
+    if not sections:
+        return {"error": "There's nothing to compile yet."}
+    EXPORTS.mkdir(parents=True, exist_ok=True)
+    base = slug(f"{title} - {'World Bible' if kind == 'bible' else 'manuscript'}")
+    if fmt == "docx":
+        p = EXPORTS / f"{base}.docx"; build_docx(p, title, author, sections, kind)
+    elif fmt == "epub":
+        p = EXPORTS / f"{base}.epub"; build_epub(p, title, author, sections, kind, "bg" if b.get("lang") == "bg" else "en")
+    elif fmt == "md":
+        p = EXPORTS / f"{base}.md"
+        out = [f"# {title}", f"*{author}*" if author else ""]
+        for s in sections:
+            out.append(("#" * (2 if s.get("level", 1) == 1 else 3)) + " " + (s.get("title") or ""))
+            out += [f"- **{k}:** {v}" for k, v in s.get("fields") or []]
+            out.append(s.get("text", ""))
+        p.write_text("\n\n".join(x for x in out if x is not None), encoding="utf-8")
+    else:
+        return {"error": "Unknown format."}
+    log("compiled", p)
+    return {"file": str(p)}
+
+
 # ---------------------------------------------------------------- http
 LAST_PING = time.time()
 STARTED = time.time()
@@ -963,6 +1253,13 @@ class H(BaseHTTPRequestHandler):
             for f in files:
                 (TRASH / Path(f).name).unlink(missing_ok=True)
             return self.send_json({"ok": True})
+        if route == "compile":
+            try:
+                r = compile_book(self.jbody())
+            except Exception as e:
+                log("compile failed", e)
+                r = {"error": f"Couldn't create the file ({type(e).__name__}: {e})."}
+            return self.send_json(r, 200 if r.get("file") else 400)
         if route == "import/parse":
             return self.send_json(import_parse(self.jbody().get("files") or []))
         if route == "worlds/pick":

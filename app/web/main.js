@@ -14,7 +14,7 @@ const Nav = {
       + `<div class="nav-group">${t("World")}</div>` + item("browse", "☰", t("Everything"), `<span class="count">${M.entries.size}</span>`)
       + counts.map(ty => { const c = entriesOf(ty.key).length; return c || ["character", "location", "event", "faction"].includes(ty.key) ? item("browse", ty.icon, typeName(ty.key), `<span class="count">${c || ""}</span>`, ty.key) : ""; }).join("")
       + (smart.length ? `<div class="nav-group">${tf("Smart lists", "Умни списъци")}</div>` + smart.map(x => item("smart", "☆", x.name, `<span class="count">${[...M.entries.values()].filter(e => Smart.match(e, x)).length}</span>`, x.id)).join("") : "")
-      + `<div class="nav-group">${t("Tools")}</div>` + item("timeline", "⟟", t("Timeline")) + item("story", "¶", t("Story")) + item("maps", "⌖", t("Maps"))
+      + `<div class="nav-group">${t("Tools")}</div>` + item("timeline", "⟟", t("Timeline")) + item("story", "¶", tf("Manuscript", "Ръкопис")) + item("maps", "⌖", t("Maps"))
       + item("alchemy", "⚗", t("Alchemy & rituals")) + item("relations", "☍", t("Relationships")) + item("family", "⚭", t("Family trees"))
       + item("worldat", "⧗", t("World at a time")) + item("glossary", "Aa", t("Glossary & languages")) + item("names", "✍", t("Name generator"))
       + item("tables", "⚄", tf("Random tables", "Случайни таблици")) + item("gallery", "▦", tf("Gallery", "Галерия")) + item("replace", "⇄", tf("Find & replace", "Търсене и замяна")) + item("trash", "🗑", tf("Trash", "Кошче"))
@@ -34,7 +34,8 @@ function palette() {
     [t("Timeline"), () => Panes.show({ view: "timeline" })], [t("Maps"), () => Panes.show({ view: "maps" })], [t("Relationships"), () => Panes.show({ view: "relations" })],
     [t("Contradictions"), () => Panes.show({ view: "contradictions" })], [t("Settings"), () => Panes.show({ view: "settings" })], [t("Export"), () => Exporter.dialog()],
     [tf("Help", "Помощ"), () => Panes.show({ view: "help" })], [tf("World-building path", "Пътят на света"), () => Panes.show({ view: "build" })],
-    [tf("To-do", "Задачи"), () => Panes.show({ view: "todo" })], [tf("New to-do", "Нова задача"), () => Todos.add()], [tf("Random tables", "Случайни таблици"), () => Panes.show({ view: "tables" })], [tf("Import notes", "Внеси бележки"), () => Importer.open()], [tf("Find & replace", "Търсене и замяна"), () => Panes.show({ view: "replace" })],
+    [tf("To-do", "Задачи"), () => Panes.show({ view: "todo" })], [tf("New to-do", "Нова задача"), () => Todos.add()], [tf("Random tables", "Случайни таблици"), () => Panes.show({ view: "tables" })],
+    [tf("Manuscript", "Ръкопис"), () => Panes.show({ view: "story" })], [tf("Compile a book or World Bible", "Компилирай книга или Библия на света"), () => Compile.dialog()], [tf("Import notes", "Внеси бележки"), () => Importer.open()], [tf("Find & replace", "Търсене и замяна"), () => Panes.show({ view: "replace" })],
     [tf("Gallery", "Галерия"), () => Panes.show({ view: "gallery" })], [tf("Trash", "Кошче"), () => Panes.show({ view: "trash" })], [tf("Check for updates", "Провери за обновления"), () => Updates.check(true, false)],
     [tf("Welcome tour", "Обиколка"), () => startTour()], [tf("Copy problem report", "Копирай отчет за проблем"), () => copyReport()],
   ];

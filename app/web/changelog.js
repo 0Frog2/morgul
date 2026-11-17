@@ -1,6 +1,21 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.2.0", items: [
+    "<b>Manuscript</b> (sidebar, ¶) replaces Story: write your book inside Morgul as <b>books → chapters → scenes</b>. Each scene has its own point of view, place, in-world date, summary and word goal; chapters and books have word goals with progress bars.",
+    "<b>Scene board:</b> switch to ▦ and drag scenes to reorder them or move them to another chapter. In the list, ↑↓ reorder chapters and scenes.",
+    "<b>Outline templates:</b> start a book from three acts, the hero's journey, seven-point structure or four acts (kishōtenketsu). Each chapter gets a note on what it should do.",
+    "<b>Compile</b> your manuscript into a <b>Word</b> document (title page, real headings, page breaks, scene breaks), an <b>e-book</b> (EPUB), <b>Markdown</b>, or a <b>PDF</b> through the print window.",
+    "<b>World Bible:</b> compile your whole world into a book: contents, every public entry grouped by type with its fields, text, images and maps. Also in Export.",
+    "Secrets never appear in compiled files, and [[links]] become plain words.",
+  ], bg: [
+    "<b>Ръкопис</b> (отстрани, ¶): пишете книгата в Morgul като <b>книги → глави → сцени</b>, с гледна точка, място, дата, резюме и цел в думи за всяка сцена.",
+    "<b>Табло със сцени:</b> плъзгайте сцени между глави. В списъка ↑↓ подреждат.",
+    "<b>Шаблони за структура:</b> три действия, пътят на героя, седем точки или четири части.",
+    "<b>Компилиране</b> в <b>Word</b>, <b>е-книга</b> (EPUB), <b>Markdown</b> или <b>PDF</b>.",
+    "<b>Библия на света:</b> целият свят като книга със съдържание, полета, текст, изображения и карти.",
+    "Тайните никога не влизат, а [[връзките]] стават обикновени думи.",
+  ] },
   { v: "1.1.0", items: [
     "<b>World-building path</b> (sidebar, ☾). Eleven stages take your world from first idea to finished: premise, cosmology, geography, history, peoples and cultures, religion, magic, power, economy, characters and story. Each stage asks questions <b>one at a time</b> and lists the entries a finished world needs. A meter shows how complete each stage is; the dashboard shows the whole world.",
     "<b>New entry types:</b> Culture, Religion, Deity, Species, Government, Currency and Holiday, with fields that link them together. Places now also have government, cultures, economy, defenses and notable places.",

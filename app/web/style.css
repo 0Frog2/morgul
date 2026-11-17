@@ -368,3 +368,37 @@ body.no-glow { --accent-glow: transparent; --accent-halo: transparent; }
 .todo-kind.k-decide { color: var(--accent); } .todo-kind.k-research { color: #7FB0C9; } .todo-kind.k-fix { color: var(--warn); } .todo-kind.k-write { color: #C9A26B; }
 .todo-box { margin: 10px 0; padding: 8px 12px; }
 .btn.icon.small { padding: 2px 6px; }
+
+/* ---------- 1.2.0: manuscript, scene board, compiled books */
+.wrap.full { max-width: none; }
+.link { color: var(--link); cursor: pointer; }
+.ms-head { display: flex; gap: 22px; align-items: center; margin-bottom: 12px; }
+.ms-ch { margin-bottom: 10px; }
+.ms-move { display: inline-flex; flex-direction: column; gap: 0; }
+.ms-move .btn { padding: 0 5px; line-height: 1; font-size: 11px; }
+.ms-scenes { margin-top: 8px; border-top: 1px solid var(--row-line); }
+.ms-scenes .li { padding-left: 4px; }
+.board { display: flex; gap: 12px; overflow-x: auto; align-items: flex-start; padding-bottom: 10px; }
+.board-col { flex: 0 0 270px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 10px; }
+.board-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.board-head b { cursor: pointer; font-family: var(--serif); }
+.board-cards { min-height: 40px; display: grid; gap: 8px; border-radius: var(--r8); padding: 2px; }
+.board-cards.over { background: var(--accent-soft); outline: 1px dashed var(--accent-mid); }
+.scene-card { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r8); padding: 8px 10px; cursor: grab; }
+.scene-card .t { cursor: pointer; }
+.scene-card.dragging { opacity: .4; }
+@media print {
+  body { zoom: 1 !important; }
+  .book { font: 12pt/1.6 Georgia, Cambria, serif; color: #111; }
+  .book .b-title { text-align: center; padding-top: 32vh; page-break-after: always; }
+  .book .b-title h1 { font-size: 30pt; } .book .b-author { font-style: italic; font-size: 14pt; margin-top: 10pt; }
+  .book .b-toc { page-break-after: always; } .book .b-toc h2 { font-size: 18pt; } .book .b-toc div { padding: 3pt 0; border-bottom: 1px dotted #bbb; }
+  .book.novel .b-part { page-break-before: always; } .book.novel .b-part h2 { text-align: center; font-size: 20pt; margin: 18vh 0 30pt; }
+  .book.novel p { text-align: justify; margin: 0; text-indent: 1.4em; } .book.novel h2 + p, .book.novel .b-break + p { text-indent: 0; }
+  .book .b-break { text-align: center; text-indent: 0 !important; margin: 12pt 0 !important; }
+  .book.bible .b-part { page-break-before: always; } .book.bible .b-part h2 { font-size: 22pt; border-bottom: 1px solid #999; padding-bottom: 4pt; }
+  .book.bible .b-entry { page-break-inside: avoid; margin-top: 16pt; } .book.bible h3 { font-size: 15pt; margin: 0; }
+  .book .b-kind { color: #666; font-size: 9pt; text-transform: uppercase; letter-spacing: .08em; }
+  .book table { border-collapse: collapse; font-size: 10pt; margin: 6pt 0; } .book th { text-align: left; color: #555; font-weight: normal; padding: 1pt 12pt 1pt 0; vertical-align: top; }
+  .book img { max-width: 100%; max-height: 60vh; display: block; margin: 8pt auto; }
+}

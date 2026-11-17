@@ -1,12 +1,11 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "date": "2026-11-17",
   "repo": "0Frog2/morgul",
   "notes": [
-    "World-building path: 11 stages from first idea to finished world, with questions one at a time and completeness meters",
-    "New types: Culture, Religion, Deity, Species, Government, Currency, Holiday; settlements get government, cultures, economy and more",
-    "Full theme editor: every color, type colors, fonts, size, spacing, corners, glow, background image; save, export and import themes",
-    "Smart lists (saved filters in the sidebar), a To-do list, and offline random tables for NPCs, taverns, rumours, plot hooks and more",
-    "The welcome tour and Help cover all of it"
+    "Manuscript mode: books, chapters and scenes with point of view, place, date and word goals",
+    "Scene board: drag scenes between chapters; outline templates (three acts, hero's journey, seven points, four acts)",
+    "Compile your book to Word, PDF, e-book (EPUB) or Markdown",
+    "World Bible: all your lore as a formatted book with contents, fields and images"
   ]
 }

@@ -68,10 +68,11 @@ const Exporter = (() => {
     const res = await modal(t("Export"), `<div class="muted small" style="margin-bottom:10px">${tf("Secret entries, author-only notes and :::secret parts are always left out.", "Тайните записи, бележките само за автора и частите :::secret винаги се пропускат.")}</div>
       <div class="row" style="margin-bottom:10px">${types.map(x => `<label class="chip on"><input type="checkbox" data-t="${x.key}" checked hidden>${x.icon} ${esc(typeName(x.key))} (${entriesOf(x.key).length})</label>`).join("")}</div>
       <label class="small muted"><input type="checkbox" data-canon> ${tf("Only canon", "Само канон")}</label>`, {
-      buttons: [{ label: t("Cancel"), value: null }, { label: "⎙ " + t("Print / PDF"), value: ov => ({ how: "print", ov }) }, { label: "⇪ " + tf("Website folder", "Уеб папка"), cls: "primary", value: ov => ({ how: "site", ov }) }],
+      buttons: [{ label: t("Cancel"), value: null }, { label: "❡ " + tf("World Bible / book…", "Библия на света / книга…"), value: ov => ({ how: "compile", ov }) }, { label: "⎙ " + t("Print / PDF"), value: ov => ({ how: "print", ov }) }, { label: "⇪ " + tf("Website folder", "Уеб папка"), cls: "primary", value: ov => ({ how: "site", ov }) }],
       onOpen: ov => $$("label.chip", ov).forEach(l => l.onclick = ev => { ev.preventDefault(); const c = $("input", l); c.checked = !c.checked; l.classList.toggle("on", c.checked); }),
     });
     if (!res) return;
+    if (res.how === "compile") return Compile.dialog();
     const keep = new Set($$("[data-t]", res.ov).filter(c => c.checked).map(c => c.dataset.t));
     const canon = $("[data-canon]", res.ov).checked;
     const ids = [...M.entries.values()].filter(e => keep.has(e.type) && (!canon || e.status === "canon")).map(e => e.id);

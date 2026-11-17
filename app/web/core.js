@@ -146,9 +146,17 @@ const DEFAULT_WORLD = {
     { key: "holiday", name: "Holiday", bg: "Празник", icon: "✺", color: "#E09A7A", fields: [
       F("when", "When", "text"), F("religion", "Religion", "link", { to: ["religion", "deity"] }), F("cultures", "Celebrated by", "links", { to: ["culture", "location"] }),
       F("customs", "Customs", "long"), F("origin", "Origin", "long") ] },
+    { key: "book", name: "Book", bg: "Книга", icon: "❡", color: "#E0C9A6", fields: [
+      F("order", "Number in series", "number"), F("subtitle", "Subtitle", "text"), F("author", "Author name", "text"),
+      F("stage", "Stage", "select", { options: ["planning", "drafting", "revising", "finished"] }), F("wordGoal", "Word goal", "number"), F("blurb", "Blurb", "long") ] },
     { key: "chapter", name: "Chapter", bg: "Глава", icon: "¶", color: "#DAF1DE", fields: [
       F("order", "Number", "number"), F("progress", "Progress", "select", { options: ["idea", "outline", "draft", "done"] }),
-      F("pov", "Point of view", "link", { to: ["character"] }), F("date", "Story date", "date"), F("summary", "Summary", "long") ] },
+      F("pov", "Point of view", "link", { to: ["character"] }), F("date", "Story date", "date"), F("summary", "Summary", "long"),
+      F("book", "Book", "link", { to: ["book"] }), F("wordGoal", "Word goal", "number") ] },
+    { key: "scene", name: "Scene", bg: "Сцена", icon: "⁂", color: "#BFD8C4", fields: [
+      F("chapter", "Chapter", "link", { to: ["chapter"] }), F("order", "Order in chapter", "number"),
+      F("progress", "Progress", "select", { options: ["idea", "outline", "draft", "revised", "done"] }), F("pov", "Point of view", "link", { to: ["character"] }),
+      F("where", "Where", "link", { to: ["location"] }), F("date", "Story date", "date"), F("summary", "What happens", "long"), F("wordGoal", "Word goal", "number") ] },
     { key: "thread", name: "Plot thread", bg: "Сюжетна нишка", icon: "⟿", color: "#D9A65A", fields: [
       F("open", "State", "select", { options: ["open", "resolved", "dropped"] }), F("question", "The question", "long"),
       F("planted", "Set up in", "links"), F("payoff", "Pays off in", "links") ] },
@@ -180,6 +188,8 @@ const DEFAULT_WORLD = {
 };
 
 const FIELD_BG = {
+  "Number in series": "Номер в поредицата", "Subtitle": "Подзаглавие", "Author name": "Име на автора", "Stage": "Етап", "Word goal": "Цел (думи)", "Blurb": "Анотация",
+  "Book": "Книга", "Chapter": "Глава", "Order in chapter": "Ред в главата", "What happens": "Какво се случва",
   "Government": "Управление", "Cultures": "Култури", "Economy and trade": "Икономика и търговия", "Defenses": "Отбрана", "Notable places": "Забележителни места",
   "Homeland": "Родина", "Peoples": "Народи", "Language": "Език", "Religions": "Религии", "Values and beliefs": "Ценности и вярвания", "Customs and rites of passage": "Обичаи и обреди",
   "Food and drink": "Храна и напитки", "Dress and appearance": "Облекло и външност", "Arts, music and stories": "Изкуство, музика и предания", "Taboos and crimes": "Табута и престъпления",
