@@ -362,11 +362,13 @@ def backup(force=False):
 
 
 # ---------------------------------------------------------------- version & updates (like Oracle 2)
-# The code is published at github.com/<repo>. Morgul only goes online to read the tiny version file there,
+# The code is published at github.com/<repo>. Its "release" branch always holds the newest released version
+# (main may hold work in progress). Morgul only goes online to read the tiny version file there,
 # and to download a new version when the author presses "Update now". It works fully offline otherwise.
 # An update replaces only the app code (the files below). Worlds, settings, backups and exports are never touched.
 MANAGED_ROOT_FILES = ["Morgul.vbs", "README.txt", "Install.cmd", "Uninstall.cmd", "setup/install.ps1"]
 PREVIOUS = APP_DIR / "_previous"
+RELEASE_BRANCH = "release"
 UPDATE_CACHE = {}
 
 
@@ -397,7 +399,7 @@ def check_update(force=False):
     if not force and UPDATE_CACHE.get("t", 0) > time.time() - 1800:
         return UPDATE_CACHE["r"]
     try:
-        remote = json.loads(http_get(f"https://raw.githubusercontent.com/{cur['repo']}/main/app/version.json?t={int(time.time())}", 6))
+        remote = json.loads(http_get(f"https://raw.githubusercontent.com/{cur['repo']}/{RELEASE_BRANCH}/app/version.json?t={int(time.time())}", 6))
         latest = remote.get("version", "0.0.0")
         r = {"current": cur["version"], "latest": latest, "available": vtuple(latest) > vtuple(cur["version"]),
              "date": remote.get("date", ""), "notes": remote.get("notes", [])}
@@ -458,7 +460,7 @@ def apply_update():
     work.mkdir(parents=True)
     repo = app_version()["repo"]
     try:
-        data = http_get(f"https://github.com/{repo}/archive/refs/tags/v{info['latest']}.zip", 60)
+        data = http_get(f"https://github.com/{repo}/archive/refs/heads/{RELEASE_BRANCH}.zip", 60)
         (work / "new.zip").write_bytes(data)
         with zipfile.ZipFile(work / "new.zip") as z:
             z.extractall(work / "x")
