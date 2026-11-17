@@ -1,10 +1,9 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "date": "2026-11-17",
   "repo": "0Frog2/morgul",
   "notes": [
-    "Calendar with weekdays, moons, seasons and holidays",
-    "Date calculator and on-this-day",
-    "Timeline lanes, era bands, lifespans, follow a character"
+    "Map maker: generate and paint maps, save as Map entries",
+    "Heraldry: coats of arms for entries"
   ]
 }

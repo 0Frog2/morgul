@@ -1,6 +1,21 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.4.0", items: [
+    "<b>Map maker</b> (Maps → ✦ Make a map): draws a map for you — a continent, islands, an archipelago, a coast, a single region or land with lakes — with coastlines, mountains, hills, forests, rivers that run to the sea, regions with borders, and a compass. Three looks: old parchment, atlas colors, or dark.",
+    "Paint it by hand: <b>raise or lower land</b> with a brush (pull islands out of the sea, cut bays, dig lakes), stamp <b>mountains, hills, forests, towns and castles</b>, clear symbols, and add <b>labels</b> for places, regions and seas. ↶ Undo works for all of it.",
+    "<b>✦ Name the regions</b> fills the map with names in your world's style (from your Languages' sample names).",
+    "Save it and it is a normal Map: add pins, routes and layers as before. ✦ <b>Edit in map maker</b> reopens it any time and keeps the pins.",
+    "<b>Heraldry</b>: a coat of arms for any faction, house, place, ruler, religion or god (⛨ on the entry's page). Shields, divided fields, bands and crosses, 20 figures, a motto, and 🎲 for random arms. The blazon is written for you, and ▣ adds the arms to the entry's images.",
+    "<b>Heraldry</b> in the sidebar shows every coat of arms in your world, and which factions and places still have none.",
+  ], bg: [
+    "<b>Създаване на карта</b> (Карти → ✦ Създай карта): рисува карта — континент, острови, архипелаг, бряг, област или суша с езера — с брегове, планини, хълмове, гори, реки, области с граници и компас. Три вида: пергамент, цветен атлас или тъмна.",
+    "Рисувайте на ръка: <b>повдигайте или снишавайте суша</b>, поставяйте <b>планини, хълмове, гори, градове и замъци</b>, чистете символи и добавяйте <b>надписи</b>. ↶ Отмени работи навсякъде.",
+    "<b>✦ Именувай областите</b> дава имена в стила на вашия свят.",
+    "Запазена, тя е обикновена карта с пинове, маршрути и слоеве. ✦ <b>Промени в създаването</b> я отваря отново, като пиновете остават.",
+    "<b>Хералдика</b>: герб за всяка фракция, род, място, владетел, религия или бог (⛨ на страницата на записа). Щитове, разделени полета, ленти и кръстове, 20 фигури, девиз и 🎲. Описанието се пише само, а ▣ добавя герба към изображенията.",
+    "<b>Хералдика</b> отстрани показва всички гербове и кои фракции и места още нямат.",
+  ] },
   { v: "1.3.0", items: [
     "<b>Calendar</b> (sidebar, ☽): your world's months as a real calendar, with <b>named weekdays</b>, <b>moons and their phases</b>, <b>seasons</b>, <b>holidays</b> (Holiday entries with a day in “When”, like 14.3) and everything dated on each day. Click a day to add an event on it or make it the present day.",
     "Set up weekdays, as many moons as you like (each with its own cycle and color) and seasons with ⚙ on the Calendar page.",
