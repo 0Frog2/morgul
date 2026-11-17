@@ -1,37 +1,99 @@
 // Startup, sidebar navigation, search palette, keyboard shortcuts.
 "use strict";
+// The sidebar stays short: the daily places, your world's types, and only the tools you pinned.
+// Every tool is one click away on the All tools page (and in Ctrl+K). Sections fold, and remember it.
+const TOOLS = [
+  // [view, icon, en, bg, en description, bg description, group]
+  ["timeline", "⟟", "Timeline", "Хроника", "Events in order, lanes, lifespans", "Събития по ред, ленти, живот", "time"],
+  ["calendar", "☽", "Calendar", "Календар", "Months, moons, seasons, holidays", "Месеци, луни, сезони, празници", "time"],
+  ["worldat", "⧗", "World at a time", "Светът в даден момент", "Who lived and what stood in a year", "Кой е живял и какво е имало в дадена година", "time"],
+  ["story", "¶", "Manuscript", "Ръкопис", "Books, chapters, scenes, compile", "Книги, глави, сцени, компилиране", "write"],
+  ["boards", "▤", "Boards", "Табла", "Corkboards and mood boards", "Коркови табла и табла с настроение", "write"],
+  ["names", "✍", "Name generator", "Генератор на имена", "Names in your world's style", "Имена в стила на света", "write"],
+  ["tables", "⚄", "Random tables", "Случайни таблици", "NPCs, taverns, rumours, hooks", "Хора, кръчми, слухове, идеи", "write"],
+  ["maps", "⌖", "Maps", "Карти", "Your maps, pins and routes", "Карти, пинове и маршрути", "world"],
+  ["mapmaker", "✦", "Map maker", "Създаване на карта", "Draw a map, or trace one you have", "Нарисувайте карта или прерисувайте ваша", "world"],
+  ["heraldry", "⛨", "Heraldry", "Хералдика", "Coats of arms", "Гербове", "world"],
+  ["alchemy", "⚗", "Alchemy & rituals", "Алхимия и ритуали", "Recipes, ingredients, rituals", "Рецепти, съставки, ритуали", "world"],
+  ["relations", "☍", "Relationships", "Връзки", "Who is tied to whom", "Кой с кого е свързан", "world"],
+  ["family", "⚭", "Family trees", "Родословия", "Parents, children, houses", "Родители, деца, родове", "world"],
+  ["glossary", "Aa", "Glossary & languages", "Речник и езици", "Words, languages, sample names", "Думи, езици, примерни имена", "world"],
+  ["gallery", "▦", "Gallery", "Галерия", "Every picture in the world", "Всички картини в света", "world"],
+  ["gm", "⚄", "Game master", "Водещ на игра", "Sessions, encounters, initiative, dice", "Сесии, срещи, инициатива, зарове", "play"],
+  ["contradictions", "⚖", "Contradictions", "Противоречия", "Things that don't add up", "Неща, които не се връзват", "keep"],
+  ["milestones", "⚑", "Milestones", "Етапи", "Save, compare, go back", "Запазване, сравнение, връщане", "keep"],
+  ["replace", "⇄", "Find & replace", "Търсене и замяна", "Change a word everywhere", "Смяна на дума навсякъде", "keep"],
+  ["export", "⇪", "Export", "Износ", "Website, PDF, Word, World Bible", "Сайт, PDF, Word, Библия на света", "keep"],
+  ["trash", "🗑", "Trash", "Кошче", "Deleted entries, to restore", "Изтрити записи за възстановяване", "keep"],
+];
+const TOOL_GROUPS = { time: ["Time", "Време"], write: ["Writing", "Писане"], world: ["Places and lore", "Места и знание"], play: ["Playing", "Игра"], keep: ["Keeping it tidy", "Поддръжка"] };
+const DEFAULT_PINS = ["timeline", "calendar", "story", "maps", "boards"];
 const Nav = {
+  pins: () => Array.isArray(M.settings.navTools) ? M.settings.navTools : DEFAULT_PINS,
+  async setPins(p) { M.settings = await api("settings", { navTools: p }); Nav.render(); },
+  folded: k => (M.state.navFolded || []).includes(k),
+  fold(k) { const f = new Set(M.state.navFolded || []); f.has(k) ? f.delete(k) : f.add(k); M.state.navFolded = [...f]; saveState(); Nav.render(); },
+  go(view) { if (view === "export") return Exporter.dialog(); Panes.show({ view }); },
   render() {
     const n = Checks.openCount();
     const inbox = entriesOf("note").filter(e => (e.tags || []).includes("inbox")).length;
     const stuck = Checks.fleshOut().length;
     const item = (view, icon, label, extra = "", id = "") => `<button class="nav-item" data-view="${view}" data-id="${esc(id)}"><i>${icon}</i><span>${esc(label)}</span>${extra}</button>`;
-    const counts = M.world.types.filter(x => x.key !== "note" && x.key !== "map");
+    const group = (k, label, body, extra = "") => `<div class="nav-group fold ${Nav.folded(k) ? "folded" : ""}" data-fold="${k}"><span>${Nav.folded(k) ? "▸" : "▾"} ${esc(label)}</span>${extra}</div>${Nav.folded(k) ? "" : body}`;
+    const types = M.world.types.filter(x => x.key !== "note" && x.key !== "map");
+    const used = types.filter(ty => entriesOf(ty.key).length);
+    const shown = used.length ? used : types.filter(ty => ["character", "location", "event", "faction"].includes(ty.key));
     const todos = Todos.open().length, smart = Smart.list();
-    $("#nav").innerHTML = item("dashboard", "⌂", t("Dashboard")) + item("build", "☾", tf("World-building path", "Пътят на света"), `<span class="count">${Path.overall()}%</span>`)
-      + item("stuck", "✦", t("I'm stuck"), stuck ? `<span class="count">${stuck}</span>` : "") + item("todo", "☐", tf("To-do", "Задачи"), todos ? `<span class="count">${todos}</span>` : "")
-      + item("inbox", "✉", t("Inbox"), inbox ? `<span class="count">${inbox}</span>` : "") + item("contradictions", "⚖", t("Contradictions"), n ? `<span class="badge">${n}</span>` : "")
-      + `<div class="nav-group">${t("World")}</div>` + item("browse", "☰", t("Everything"), `<span class="count">${M.entries.size}</span>`)
-      + counts.map(ty => { const c = entriesOf(ty.key).length; return c || ["character", "location", "event", "faction"].includes(ty.key) ? item("browse", ty.icon, typeName(ty.key), `<span class="count">${c || ""}</span>`, ty.key) : ""; }).join("")
-      + (smart.length ? `<div class="nav-group">${tf("Smart lists", "Умни списъци")}</div>` + smart.map(x => item("smart", "☆", x.name, `<span class="count">${[...M.entries.values()].filter(e => Smart.match(e, x)).length}</span>`, x.id)).join("") : "")
-      + `<div class="nav-group">${t("Tools")}</div>` + item("timeline", "⟟", t("Timeline")) + item("calendar", "☽", tf("Calendar", "Календар")) + item("story", "¶", tf("Manuscript", "Ръкопис")) + item("maps", "⌖", t("Maps")) + item("heraldry", "⛨", tf("Heraldry", "Хералдика")) + item("boards", "▤", tf("Boards", "Табла")) + item("gm", "⚄", tf("Game master", "Водещ")) + item("milestones", "⚑", tf("Milestones", "Етапи"))
-      + item("alchemy", "⚗", t("Alchemy & rituals")) + item("relations", "☍", t("Relationships")) + item("family", "⚭", t("Family trees"))
-      + item("worldat", "⧗", t("World at a time")) + item("glossary", "Aa", t("Glossary & languages")) + item("names", "✍", t("Name generator"))
-      + item("tables", "⚄", tf("Random tables", "Случайни таблици")) + item("gallery", "▦", tf("Gallery", "Галерия")) + item("replace", "⇄", tf("Find & replace", "Търсене и замяна")) + item("trash", "🗑", tf("Trash", "Кошче"))
-      + `<button class="nav-item" data-export><i>⇪</i><span>${esc(t("Export"))}</span></button>`;
-    $$("#nav [data-view]").forEach(b => b.onclick = ev => Panes.show(b.dataset.view === "smart" ? { view: "smart", id: b.dataset.id } : { view: b.dataset.view, type: b.dataset.id || undefined, id: undefined }, ev.shiftKey ? 1 : 0));
-    $("#nav [data-export]").onclick = () => Exporter.dialog();
+    const pins = Nav.pins().map(v => TOOLS.find(x => x[0] === v)).filter(Boolean);
+    $("#nav").innerHTML =
+      item("dashboard", "⌂", t("Dashboard")) + item("build", "☾", tf("World-building path", "Пътят на света"), `<span class="count">${Path.overall()}%</span>`)
+      + item("inbox", "✉", t("Inbox"), inbox ? `<span class="count">${inbox}</span>` : "") + item("todo", "☐", tf("To-do", "Задачи"), todos ? `<span class="count">${todos}</span>` : "")
+      + item("stuck", "✦", t("I'm stuck"), (n ? `<span class="badge" data-contra title="${esc(t("Contradictions"))}">⚖ ${n}</span>` : "") + (stuck ? `<span class="count">${stuck}</span>` : ""))
+      + group("world", t("World"), item("browse", "☰", t("Everything"), `<span class="count">${M.entries.size}</span>`)
+          + shown.map(ty => item("browse", ty.icon, typeName(ty.key), `<span class="count">${entriesOf(ty.key).length || ""}</span>`, ty.key)).join("")
+          + smart.map(x => item("smart", "☆", x.name, `<span class="count">${[...M.entries.values()].filter(e => Smart.match(e, x)).length}</span>`, x.id)).join(""),
+        used.length < types.length ? `<button class="nav-mini" data-alltypes title="${tf("All types, including empty ones", "Всички видове, и празните")}">＋</button>` : "")
+      + group("tools", t("Tools"), pins.map(x => item(x[0], x[1], tf(x[2], x[3]))).join("") + item("tools", "⋯", tf("All tools", "Всички инструменти")));
+    $$("#nav [data-view]").forEach(b => b.onclick = ev => {
+      if (ev.target.closest("[data-contra]")) { ev.stopPropagation(); return Panes.show({ view: "contradictions" }, ev.shiftKey ? 1 : 0); }
+      if (b.dataset.view === "export") return Exporter.dialog();
+      Panes.show(b.dataset.view === "smart" ? { view: "smart", id: b.dataset.id } : { view: b.dataset.view, type: b.dataset.id || undefined, id: undefined }, ev.shiftKey ? 1 : 0);
+    });
+    $$("#nav [data-fold]").forEach(g => g.onclick = ev => { if (!ev.target.closest("button")) Nav.fold(g.dataset.fold); });
+    $("#nav [data-alltypes]")?.addEventListener("click", ev => { ev.stopPropagation(); Panes.show({ view: "tools", id: "types" }); });
     $$("[data-t]").forEach(x => x.textContent = t(x.dataset.t));
     Nav.mark(Panes.cur[0] || { view: "dashboard" });
   },
   mark(r) { $$("#nav [data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === r.view && (r.view === "browse" ? (b.dataset.id || "") === (r.type || "") : r.view === "smart" ? b.dataset.id === r.id : true))); },
 };
 
+// All tools: every tool in one place, with ☆ to pin it to the sidebar; and every entry type.
+Views.tools = (el, r, pane) => {
+  const pins = new Set(Nav.pins());
+  const tile = x => `<div class="tool-tile" data-go="${x[0]}"><i>${x[1]}</i><div class="main"><div class="t">${esc(tf(x[2], x[3]))}</div><div class="d">${esc(tf(x[4], x[5]))}</div></div>
+    <button class="pin ${pins.has(x[0]) ? "on" : ""}" data-pin="${x[0]}" title="${pins.has(x[0]) ? tf("Unpin from the sidebar", "Махни от страничната лента") : tf("Pin to the sidebar", "Закачи в страничната лента")}">${pins.has(x[0]) ? "★" : "☆"}</button></div>`;
+  const types = M.world.types.filter(x => x.key !== "note" && x.key !== "map");
+  el.innerHTML = paneHead(`⋯ ${tf("All tools", "Всички инструменти")}`, "", pane) + `<div class="pane-body"><div class="wrap wide">
+    <p class="muted">${tf("☆ pins a tool to the sidebar, so the sidebar only holds what you use. Everything is also in Ctrl+K.", "☆ закача инструмент в страничната лента, за да има там само това, което ползвате. Всичко е и в Ctrl+K.")}</p>
+    ${Object.entries(TOOL_GROUPS).map(([g, [en, bg]]) => `<div class="section-sub">${esc(tf(en, bg))}</div><div class="tool-grid">${TOOLS.filter(x => x[6] === g).map(tile).join("")}</div>`).join("")}
+    <div class="section-sub" id="types">${tf("Entry types", "Видове записи")}</div>
+    <div class="tool-grid">${types.map(ty => { const c = entriesOf(ty.key).length; return `<div class="tool-tile" data-type="${ty.key}"><i style="color:${ty.color}">${ty.icon}</i><div class="main"><div class="t">${esc(typeName(ty.key))}</div><div class="d">${c} ${tf("entries", "записа")}</div></div>
+      <button class="pin" data-newt="${ty.key}" title="${tf("New", "Нов")}">＋</button></div>`; }).join("")}</div>
+    <div class="faint small" style="margin-top:8px">${tf("Types with entries show in the sidebar by themselves.", "Видовете със записи се показват в страничната лента сами.")}</div>
+  </div></div>`;
+  $$("[data-go]", el).forEach(x => x.onclick = ev => { if (ev.target.closest("[data-pin]")) return; x.dataset.go === "export" ? Exporter.dialog() : Panes.show({ view: x.dataset.go }, pane); });
+  $$("[data-pin]", el).forEach(b => b.onclick = async ev => { ev.stopPropagation(); const p = Nav.pins().filter(v => v !== b.dataset.pin); if (!pins.has(b.dataset.pin)) p.push(b.dataset.pin);
+    await Nav.setPins(TOOLS.map(x => x[0]).filter(v => p.includes(v))); Panes.refresh(); });
+  $$("[data-type]", el).forEach(x => x.onclick = ev => { if (ev.target.closest("[data-newt]")) return; Panes.show({ view: "browse", type: x.dataset.type }, pane); });
+  $$("[data-newt]", el).forEach(b => b.onclick = async ev => { ev.stopPropagation(); const e = await createEntry(b.dataset.newt, ""); Entry.editing.add(e.id); open(e.id); });
+  if (r.id === "types") setTimeout(() => $("#types", el)?.scrollIntoView({ block: "start" }), 50);
+};
+
 // ---------------- search palette (Ctrl+K)
 function palette() {
   const cmds = [
     [t("New entry"), () => newEntryBox()], [t("Quick note"), () => Capture.open()], [t("I'm stuck"), () => Panes.show({ view: "stuck" })],
-    [t("Timeline"), () => Panes.show({ view: "timeline" })], [tf("Calendar", "Календар"), () => Panes.show({ view: "calendar" })], [tf("Date calculator", "Калкулатор за дати"), () => dateCalculator()], [t("Maps"), () => Panes.show({ view: "maps" })], [tf("Make a map", "Създай карта"), () => Panes.show({ view: "mapmaker" })], [tf("Heraldry", "Хералдика"), () => Panes.show({ view: "heraldry" })], [tf("Boards", "Табла"), () => Panes.show({ view: "boards" })], [tf("Game master", "Водещ на игра"), () => Panes.show({ view: "gm" })], [tf("Roll dice", "Хвърли зарове"), () => Panes.show({ view: "gm", id: "dice" })], [tf("Milestones", "Етапи"), () => Panes.show({ view: "milestones" })], [tf("Save a milestone", "Запази етап"), () => Panes.show({ view: "milestones" })], [tf("Save this world as one file", "Запази света като един файл"), () => WorldFile.save()], [t("Relationships"), () => Panes.show({ view: "relations" })],
+    [tf("All tools", "Всички инструменти"), () => Panes.show({ view: "tools" })], [t("Timeline"), () => Panes.show({ view: "timeline" })], [tf("Calendar", "Календар"), () => Panes.show({ view: "calendar" })], [tf("Date calculator", "Калкулатор за дати"), () => dateCalculator()], [t("Maps"), () => Panes.show({ view: "maps" })], [tf("Make a map", "Създай карта"), () => Panes.show({ view: "mapmaker" })], [tf("Heraldry", "Хералдика"), () => Panes.show({ view: "heraldry" })], [tf("Boards", "Табла"), () => Panes.show({ view: "boards" })], [tf("Game master", "Водещ на игра"), () => Panes.show({ view: "gm" })], [tf("Roll dice", "Хвърли зарове"), () => Panes.show({ view: "gm", id: "dice" })], [tf("Milestones", "Етапи"), () => Panes.show({ view: "milestones" })], [tf("Save a milestone", "Запази етап"), () => Panes.show({ view: "milestones" })], [tf("Save this world as one file", "Запази света като един файл"), () => WorldFile.save()], [t("Relationships"), () => Panes.show({ view: "relations" })],
     [t("Contradictions"), () => Panes.show({ view: "contradictions" })], [t("Settings"), () => Panes.show({ view: "settings" })], [t("Export"), () => Exporter.dialog()],
     [tf("Help", "Помощ"), () => Panes.show({ view: "help" })], [tf("World-building path", "Пътят на света"), () => Panes.show({ view: "build" })],
     [tf("To-do", "Задачи"), () => Panes.show({ view: "todo" })], [tf("New to-do", "Нова задача"), () => Todos.add()], [tf("Random tables", "Случайни таблици"), () => Panes.show({ view: "tables" })],

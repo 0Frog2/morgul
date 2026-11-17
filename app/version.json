@@ -1,11 +1,10 @@
 {
-  "version": "1.5.0",
+  "version": "1.6.0",
   "date": "2026-11-17",
   "repo": "0Frog2/morgul",
   "notes": [
-    "Corkboards and mood boards",
-    "World milestones: compare and restore",
-    "A world as one file",
-    "Game master tools"
+    "Shorter sidebar with pinned tools and All tools",
+    "Trace a map you have",
+    "Reference picture and paint land/sea brushes"
   ]
 }

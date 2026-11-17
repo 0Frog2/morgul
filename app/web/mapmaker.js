@@ -19,13 +19,19 @@ const MK = {
     atlas: { paper: "#F3EEDF", sea: "#7FA7C2", deep: "#3E6C8E", land: ["#9DBB7E", "#7F9F62", "#A99569", "#9B9488"], ink: "#33302A", forest: "#4E7A45", river: "#3E6C8E", region: ["#E2B27A", "#9CCB86", "#B7A6E0", "#E59A9A", "#86C3CB", "#E6D27A", "#C9A386", "#97A9DE"], label: "#1F1D18", snow: "#F4F4F0" },
     morgul: { paper: "#070D0B", sea: "#0C1A18", deep: "#06100F", land: ["#18241D", "#1F2E25", "#283A2F", "#33473A"], ink: "#8EB69B", forest: "#2E4A37", river: "#2F5F59", region: ["#8EB69B", "#C9A26A", "#8A7FB8", "#B86A6A", "#6AA3AD", "#B8B06A", "#A3866A", "#6A80B8"], label: "#DDE8E0", snow: "#A9BFB2" },
   },
-  shapes: { continent: ["One continent", "Един континент"], islands: ["A few islands", "Няколко острова"], archipelago: ["Archipelago", "Архипелаг"], coast: ["Coast (sea on one side)", "Бряг (море от едната страна)"], inland: ["All land (a region)", "Само суша (област)"], lakes: ["Land with lakes", "Суша с езера"] },
+  shapes: { continent: ["One continent", "Един континент"], islands: ["A few islands", "Няколко острова"], archipelago: ["Archipelago", "Архипелаг"], coast: ["Coast (sea on one side)", "Бряг (море от едната страна)"], inland: ["All land (a region)", "Само суша (област)"], lakes: ["Land with lakes", "Суша с езера"], blank: ["Empty sea (draw it yourself)", "Празно море (рисувате сами)"] },
 
   // ---------------------------------------------------------------- the height map
   _cache: null,
   base(o) {
-    const key = [o.seed, o.shape, o.land, o.rough].join("|");
+    const key = [o.seed, o.shape, o.land, o.rough, o.trace?.id || ""].join("|");
     if (this._cache?.key === key) return this._cache;
+    if (o.trace) return this._cache = { key, ...this.traceBase(o) };
+    if (o.shape === "blank") {          // nothing but sea: you paint the land (over a reference picture, for instance)
+      const GW = this.W / this.S, GH = this.H / this.S, n = this.noise(o.seed), h = new Float32Array(GW * GH);
+      for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) h[y * GW + x] = .3 + n(x / GW * 5, y / GH * 5, 4) * .06;
+      return this._cache = { key, GW, GH, h, sea: .5, top: 1.1 };
+    }
     const GW = this.W / this.S, GH = this.H / this.S, n = this.noise(o.seed), r = this.rng(o.seed + 7);
     const h = new Float32Array(GW * GH), freq = 2.2 + o.rough / 100 * 5, oct = 4 + Math.round(o.rough / 34);
     const side = Math.floor(r() * 4), cx = .5 + (r() - .5) * .12, cy = .5 + (r() - .5) * .12;
@@ -48,10 +54,38 @@ const MK = {
     const top = sorted[sorted.length - 1];
     return this._cache = { key, GW, GH, h, sea, top };
   },
+  // a traced map: sea/land/forest/mountain cells -> heights by distance to the coast, so the coastline follows the picture
+  traceBase(o) {
+    const GW = this.W / this.S, GH = this.H / this.S, cls = Trace.decode(o.trace.cells, GW * GH), n = this.noise(o.seed);
+    const dist = land => {            // cells to the nearest cell of the other kind (chamfer distance)
+      const d = new Float32Array(GW * GH).fill(1e9);
+      for (let i = 0; i < d.length; i++) if ((cls[i] > 0) !== land) d[i] = 0;
+      const pass = (x, y, dx, dy, w) => { const j = (y + dy) * GW + x + dx; if (x + dx < 0 || x + dx >= GW || y + dy < 0 || y + dy >= GH) return; const i = y * GW + x; if (d[j] + w < d[i]) d[i] = d[j] + w; };
+      for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { pass(x, y, -1, 0, 1); pass(x, y, 0, -1, 1); pass(x, y, -1, -1, 1.41); pass(x, y, 1, -1, 1.41); }
+      for (let y = GH - 1; y >= 0; y--) for (let x = GW - 1; x >= 0; x--) { pass(x, y, 1, 0, 1); pass(x, y, 0, 1, 1); pass(x, y, 1, 1, 1.41); pass(x, y, -1, 1, 1.41); }
+      return d;
+    };
+    const dl = dist(true), ds = dist(false), h = new Float32Array(GW * GH);
+    for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+      const i = y * GW + x, c = cls[i], nz = n(x / GW * 6, y / GH * 6, 4);
+      if (c === 0) h[i] = .5 - .015 - Math.min(1, ds[i] / 22) * .4;
+      else h[i] = .5 + .015 + Math.min(1, dl[i] / 30) * .3 + nz * .12 * Math.min(1, dl[i] / 5) + (c === 3 ? .55 : 0);
+    }
+    return { GW, GH, h, sea: .5, top: 1.5, forest: cls };
+  },
   heights(o) {
     const b = this.base(o), h = Float32Array.from(b.h), { GW, GH } = b, span = Math.max(.05, b.top - b.sea);
     for (const s of o.strokes) {                 // hand-painted raise/lower, in image pixels
       const gx = s.x / this.S, gy = s.y / this.S, R = s.r / this.S, R2 = R * R, amt = s.a * span;
+      if (s.set !== undefined) {          // paint land / paint sea: pull the ground toward one level, with a soft edge
+        const target = b.sea + s.set * span;
+        for (let y = Math.max(0, Math.floor(gy - R)); y < Math.min(GH, gy + R); y++) for (let x = Math.max(0, Math.floor(gx - R)); x < Math.min(GW, gx + R); x++) {
+          const d = Math.sqrt((x - gx) ** 2 + (y - gy) ** 2) / R; if (d >= 1) continue;
+          const w = d < .7 ? 1 : 1 - (d - .7) / .3, i = y * GW + x;
+          if (s.set > 0 ? h[i] < target : h[i] > target) h[i] += (target - h[i]) * w;
+        }
+        continue;
+      }
       for (let y = Math.max(0, Math.floor(gy - R * 1.6)); y < Math.min(GH, gy + R * 1.6); y++) for (let x = Math.max(0, Math.floor(gx - R * 1.6)); x < Math.min(GW, gx + R * 1.6); x++) {
         const d2 = (x - gx) ** 2 + (y - gy) ** 2; h[y * GW + x] += amt * Math.exp(-d2 / R2 * 1.4);
       }
@@ -65,7 +99,7 @@ const MK = {
   render(canvas, o) {
     const W = this.W, H = this.H, S = this.S, st = this.styles[o.style] || this.styles.parchment;
     canvas.width = W; canvas.height = H; const ctx = canvas.getContext("2d");
-    const { GW, GH, el } = this.heights(o), rnd = this.rng(o.seed + 99), moist = this.noise(o.seed + 31);
+    const { GW, GH, el } = this.heights(o), traced = o.trace ? this.base(o).forest : null, rnd = this.rng(o.seed + 99), moist = this.noise(o.seed + 31);
     const at = (x, y) => el[Math.min(GH - 1, Math.max(0, y)) * GW + Math.min(GW - 1, Math.max(0, x))];
     const hex = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
     const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
@@ -156,7 +190,7 @@ const MK = {
       if (e < .02 || riverCells.has(cy * GW + cx)) continue;
       if (e > mt) { if (r < .6) sym.push({ k: "m", x, y, s: .8 + Math.min(.9, (e - mt) * 1.6) + rnd() * .2 }); }
       else if (e > mt - .14 && r < .28) sym.push({ k: "h", x, y, s: .8 + rnd() * .3 });
-      else if (e < mt - .05 && moist(x / 260, y / 260, 4) > 1 - o.forests / 100 * .72 && r < .85) sym.push({ k: "f", x, y, s: .8 + rnd() * .35 });
+      else if (e < mt - .05 && (traced ? traced[cy * GW + cx] === 2 : moist(x / 260, y / 260, 4) > 1 - o.forests / 100 * .72) && r < .85) sym.push({ k: "f", x, y, s: .8 + rnd() * .35 });
     }
     const all = [...sym.filter(s => !erased(s.x, s.y)), ...o.stamps.filter(s => s.k !== "x").map(s => ({ ...s, s: s.s || 1 }))].sort((a, b) => a.y - b.y);
     const landAt = (x, y) => { const e = at(Math.floor(x / S), Math.floor(y / S)); const t = Math.min(.999, Math.max(0, e) * 1.15) * (lands.length - 1), k = Math.floor(t); const c = mix(lands[k], lands[k + 1], t - k); return `rgb(${c})`; };
@@ -201,14 +235,127 @@ const MK = {
   },
 };
 
+// ---------------------------------------------------------------- tracing a map you already have
+// The picture is shrunk to the maker's grid. Every cell gets the class of the nearest sample colour:
+// 0 sea, 1 land, 2 forest, 3 mountains, 4 lines & writing (ink). Ink then takes the class around it, and tiny specks are cleaned up.
+const Trace = {
+  names: [["Sea", "Море"], ["Land", "Суша"], ["Forest", "Гора"], ["Mountains", "Планини"], ["Lines & writing", "Линии и надписи"]],
+  colors: ["#3E6C8E", "#B9A77E", "#4E7A45", "#8C7B6B", "#E05050"],
+  encode(cls) { let s = "", cur = cls[0], n = 0; for (let i = 0; i <= cls.length; i++) { if (i < cls.length && cls[i] === cur && n < 35) { n++; continue; } s += cur + n.toString(36); cur = cls[i]; n = 1; } return s; },
+  decode(s, len) { const out = new Uint8Array(len); let p = 0; for (let i = 0; i + 1 < s.length; i += 2) { const c = +s[i], n = parseInt(s[i + 1], 36); out.fill(c, p, p + n); p += n; } return out; },
+  // the picture fitted into the map (contain), the empty edges count as sea
+  grid(imgEl, GW, GH) {
+    const c = document.createElement("canvas"); c.width = GW; c.height = GH; const x = c.getContext("2d", { willReadFrequently: true });
+    const k = Math.min(GW / imgEl.naturalWidth, GH / imgEl.naturalHeight), w = imgEl.naturalWidth * k, h = imgEl.naturalHeight * k;
+    x.imageSmoothingQuality = "high"; x.drawImage(imgEl, (GW - w) / 2, (GH - h) / 2, w, h);
+    const inside = (cx, cy) => cx >= (GW - w) / 2 && cx < (GW + w) / 2 && cy >= (GH - h) / 2 && cy < (GH + h) / 2;
+    return { data: x.getImageData(0, 0, GW, GH).data, inside };
+  },
+  dist: (a, b) => { const r = (a[0] + b[0]) / 2, dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2]; return (2 + r / 256) * dr * dr + 4 * dg * dg + (2 + (255 - r) / 256) * db * db; },
+  // first guess: the commonest colour along the picture's edge is sea; the commonest clearly different colour is land; the darkest is ink
+  guess(imgEl) {
+    const c = document.createElement("canvas"), W = 320, H = Math.max(40, Math.round(320 * imgEl.naturalHeight / imgEl.naturalWidth)); c.width = W; c.height = H;
+    const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(imgEl, 0, 0, W, H); const d = x.getImageData(0, 0, W, H).data;
+    const px = i => [d[i * 4], d[i * 4 + 1], d[i * 4 + 2]], q = p => p.map(v => v >> 5).join(",");
+    const count = idx => { const m = new Map(); for (const i of idx) { const k = q(px(i)); const e = m.get(k) || { n: 0, sum: [0, 0, 0] }; e.n++; px(i).forEach((v, j) => e.sum[j] += v); m.set(k, e); } return [...m.values()].sort((a, b) => b.n - a.n).map(e => e.sum.map(v => Math.round(v / e.n))); };
+    const edge = []; for (let i = 0; i < W; i++) edge.push(i, (H - 1) * W + i); for (let j = 0; j < H; j++) edge.push(j * W, j * W + W - 1);
+    const all = [...Array(W * H).keys()], sea = count(edge)[0], common = count(all);
+    const land = common.find(cl => Tracer_far(cl, sea)) || [180, 160, 120];
+    const lum = p => p[0] * .3 + p[1] * .59 + p[2] * .11, ink = all.map(px).sort((a, b) => lum(a) - lum(b))[Math.floor(all.length * .004)];
+    const s = [{ k: 0, c: sea }, { k: 1, c: land }]; if (lum(ink) < Math.min(lum(sea), lum(land)) - 45) s.push({ k: 4, c: ink }, { k: 4, c: ink.map(v => Math.round(v * .5)) });
+    // other big colour areas: green → forest, blue → sea, darker earth → mountains, anything else → land
+    const area = W * H, counts = new Map(); for (const i of all) { const k = q(px(i)); counts.set(k, (counts.get(k) || 0) + 1); }
+    for (const c of common.slice(0, 12)) {
+      if ((counts.get(q(c)) || 0) < area * .004 || s.some(x => Trace.dist(x.c, c) < 9 * 28 * 28)) continue;
+      const [r, g, b] = c, k = g > r + 12 && g > b + 5 ? 2 : b > r + 25 && b > g ? 0 : lum(c) < lum(land) - 25 && lum(c) > lum(ink) + 30 ? 3 : 1;
+      s.push({ k, c });
+    }
+    return s;
+  },
+  classify(grid, samples, GW, GH, clean = 2) {
+    const n = GW * GH, cls = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = i % GW, y = (i / GW) | 0; if (!grid.inside(x + .5, y + .5)) { cls[i] = 0; continue; }
+      const p = [grid.data[i * 4], grid.data[i * 4 + 1], grid.data[i * 4 + 2]]; let best = 1, bd = 1e12;
+      for (const s of samples) { const dd = this.dist(p, s.c); if (dd < bd) { bd = dd; best = s.k; } } cls[i] = best;
+    }
+    // ink (outlines, writing, symbols) becomes whatever surrounds it
+    for (let pass = 0; pass < 12; pass++) { let left = 0; const nx = Uint8Array.from(cls);
+      for (let i = 0; i < n; i++) if (cls[i] === 4) { const x = i % GW, y = (i / GW) | 0, votes = [0, 0, 0, 0];
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < GW && yy < GH) { const c = cls[yy * GW + xx]; if (c < 4) votes[c]++; } }
+        const m = Math.max(...votes); if (m) nx[i] = votes.indexOf(m); else left++; }
+      cls.set(nx); if (!left) break; }
+    for (let i = 0; i < n; i++) if (cls[i] === 4) cls[i] = 1;
+    // smoothing: each cell takes the most common class around it
+    for (let pass = 0; pass < clean; pass++) { const nx = Uint8Array.from(cls);
+      for (let y = 1; y < GH - 1; y++) for (let x = 1; x < GW - 1; x++) { const v = [0, 0, 0, 0];
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) v[cls[(y + dy) * GW + x + dx]]++;
+        const m = Math.max(...v), c = cls[y * GW + x]; if (v[c] < 4) nx[y * GW + x] = v.indexOf(m); }
+      cls.set(nx); }
+    // specks: land or sea patches smaller than a few cells join their surroundings
+    const seen = new Uint8Array(n), min = 6 + clean * 4;
+    for (let i = 0; i < n; i++) { if (seen[i]) continue; const isLand = cls[i] > 0, stack = [i], blob = []; seen[i] = 1;
+      while (stack.length) { const j = stack.pop(); blob.push(j); const x = j % GW, y = (j / GW) | 0;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const xx = x + dx, yy = y + dy, k = yy * GW + xx; if (xx >= 0 && yy >= 0 && xx < GW && yy < GH && !seen[k] && (cls[k] > 0) === isLand) { seen[k] = 1; stack.push(k); } } }
+      if (blob.length < min) for (const j of blob) cls[j] = isLand ? 0 : 1; }
+    return cls;
+  },
+  async pick(file) {
+    const url = file ? URL.createObjectURL(file) : null;
+    return url;
+  },
+  // the dialog: the picture with sample clicks, and a live preview of what Morgul understood
+  async dialog(src) {
+    const imgEl = new Image(); imgEl.src = src; await new Promise((ok, no) => { imgEl.onload = ok; imgEl.onerror = no; });
+    const GW = MK.W / MK.S, GH = MK.H / MK.S, grid = this.grid(imgEl, GW, GH);
+    let samples = this.guess(imgEl), cls = null, mode = 0, clean = 2;
+    return modal(tf("Trace a map you have", "Прерисуване на ваша карта"), `<div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start">
+        <div><div class="small faint" style="margin-bottom:4px">${tf("Your map — click to show Morgul what each colour is", "Вашата карта — щракнете, за да покажете какво е всеки цвят")}</div><canvas data-src class="trace-src"></canvas></div>
+        <div><div class="small faint" style="margin-bottom:4px">${tf("What Morgul sees", "Какво вижда Morgul")}</div><canvas data-prev class="trace-src"></canvas></div></div>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap"><span class="small faint">${tf("Next click is", "Следващото щракване е")}</span>${this.names.map((n, k) => `<span class="chip ${k === 0 ? "on" : ""}" data-k="${k}"><i class="swatch" style="background:${this.colors[k]}"></i> ${esc(tf(...n))}</span>`).join("")}
+        <span class="spacer"></span><label class="small">${tf("Clean up", "Изчистване")} <input type="range" min="0" max="5" value="2" data-clean style="width:90px"></label><button class="btn small ghost" data-reset>${tf("Start over", "Отначало")}</button></div>
+      <div class="small" data-samples style="margin-top:6px"></div>
+      <div class="faint small" style="margin-top:6px">${tf("Morgul guessed sea and land from the colours. If something is wrong, pick what it should be and click on it in your map; click several spots if the sea or land has more than one colour. Writing, borders and symbols can be marked as “lines & writing” so they disappear. Names are not read: add them as labels afterwards.", "Morgul позна морето и сушата по цветовете. Ако нещо не е вярно, изберете какво трябва да е и щракнете върху него; щракнете няколко места, ако морето или сушата имат повече цветове. Надписите и линиите се маркират като „линии и надписи“, за да изчезнат. Имената не се четат: добавете ги после като надписи.")}</div>`,
+      { wide: true, buttons: [{ label: t("Cancel"), value: null }, { label: tf("Use this", "Използвай това"), cls: "primary", value: () => ({ cells: Trace.encode(cls), id: uid(), nw: imgEl.naturalWidth, nh: imgEl.naturalHeight }) }],
+        onOpen: ov => {
+          ov.querySelector(".modal")?.classList.add("xwide");
+          const src = $("[data-src]", ov), prev = $("[data-prev]", ov);
+          src.width = MK.W / 2; src.height = MK.H / 2; prev.width = GW; prev.height = GH;
+          const sx = src.getContext("2d", { willReadFrequently: true }), k = Math.min(src.width / imgEl.naturalWidth, src.height / imgEl.naturalHeight);
+          const ox = (src.width - imgEl.naturalWidth * k) / 2, oy = (src.height - imgEl.naturalHeight * k) / 2;
+          sx.fillStyle = "#000"; sx.fillRect(0, 0, src.width, src.height); sx.drawImage(imgEl, ox, oy, imgEl.naturalWidth * k, imgEl.naturalHeight * k);
+          const orig = sx.getImageData(0, 0, src.width, src.height);
+          const draw = () => {
+            cls = Trace.classify(grid, samples, GW, GH, clean);
+            const px = prev.getContext("2d"), id = px.createImageData(GW, GH), cols = Trace.colors.map(c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)));
+            for (let i = 0; i < cls.length; i++) id.data.set([...cols[cls[i]], 255], i * 4); px.putImageData(id, 0, 0);
+            sx.putImageData(orig, 0, 0);
+            for (const s of samples) if (s.x != null) { sx.beginPath(); sx.arc(s.x, s.y, 6, 0, 7); sx.fillStyle = Trace.colors[s.k]; sx.fill(); sx.lineWidth = 2; sx.strokeStyle = "#fff"; sx.stroke(); }
+            $("[data-samples]", ov).innerHTML = Trace.names.map((nm, kk) => { const ss = samples.filter(s => s.k === kk); return ss.length ? `<span style="margin-right:12px">${esc(tf(...nm))}: ${ss.map(s => `<i class="swatch" style="background:rgb(${s.c})"></i>`).join("")}</span>` : ""; }).join("");
+          };
+          src.onclick = ev => {
+            const b = src.getBoundingClientRect(), x = (ev.clientX - b.left) * src.width / b.width, y = (ev.clientY - b.top) * src.height / b.height;
+            const d = sx.getImageData(Math.max(0, x - 1), Math.max(0, y - 1), 3, 3).data, c = [0, 1, 2].map(j => Math.round((d[j] + d[4 + j] + d[8 + j] + d[12 + j] + d[16 + j] + d[20 + j] + d[24 + j] + d[28 + j] + d[32 + j]) / 9));
+            const o2 = orig.data, ii = (Math.round(y) * src.width + Math.round(x)) * 4; const c0 = [o2[ii], o2[ii + 1], o2[ii + 2]];
+            samples.push({ k: mode, c: Tracer_far(c, c0) ? c0 : c, x, y }); draw();
+          };
+          $$("[data-k]", ov).forEach(ch => ch.onclick = () => { mode = +ch.dataset.k; $$("[data-k]", ov).forEach(x => x.classList.toggle("on", x === ch)); });
+          $("[data-clean]", ov).oninput = e => { clean = +e.target.value; draw(); };
+          $("[data-reset]", ov).onclick = () => { samples = Trace.guess(imgEl); draw(); };
+          draw();
+        } });
+  },
+};
+function Tracer_far(a, b) { return Trace.dist(a, b) > 9 * 50 * 50; }
+
 // ---------------------------------------------------------------- the map maker page
 Views.mapmaker = (el, r, pane) => {
   const entry = r.id ? M.entries.get(r.id) : null;
-  const o = { ...MK.defaults(), ...structuredClone(entry?.map?.maker || {}) };
+  const o = Views.mapmaker.pending || { ...MK.defaults(), ...structuredClone(entry?.map?.maker || {}) }; Views.mapmaker.pending = null;
   let tool = "look", info = {}, dirty = false, drag = null;
   const undo = [];
   const push = () => { undo.push(JSON.stringify({ s: o.strokes, t: o.stamps, l: o.labels, seed: o.seed })); if (undo.length > 60) undo.shift(); dirty = true; };
-  const tools = [["look", "✋", tf("Look / move labels", "Разгледай / мести надписи")], ["raise", "▲", tf("Raise land", "Повдигни суша")], ["lower", "▼", tf("Lower land / dig sea", "Сниши / изкопай море")],
+  const tools = [["look", "✋", tf("Look / move labels", "Разгледай / мести надписи")], ["land", "▰", tf("Paint land", "Рисувай суша")], ["sea", "≈", tf("Paint sea", "Рисувай море")], ["raise", "▲", tf("Raise land", "Повдигни суша")], ["lower", "▼", tf("Lower land / dig sea", "Сниши / изкопай море")],
     ["m", "⛰", tf("Mountains", "Планини")], ["h", "◠", tf("Hills", "Хълмове")], ["f", "♣", tf("Forest", "Гора")], ["t", "◉", tf("Town", "Град")], ["c", "♜", tf("City or castle", "Град или замък")],
     ["x", "⌫", tf("Erase symbols", "Изтрий символи")], ["label", "A", tf("Label", "Надпис")]];
   const slider = (k, en, bg, min = 0, max = 100) => `<label class="small">${tf(en, bg)} <span class="faint" data-v="${k}">${o[k]}</span><input type="range" min="${min}" max="${max}" value="${o[k]}" data-s="${k}" style="width:100%"></label>`;
@@ -217,11 +364,20 @@ Views.mapmaker = (el, r, pane) => {
     <div class="pane-body flush"><div class="mk">
       <div class="mk-side">
         <div class="section-sub" style="margin-top:0">${tf("World", "Свят")}</div>
-        <select class="input" data-shape>${Object.entries(MK.shapes).map(([k, v]) => `<option value="${k}" ${o.shape === k ? "selected" : ""}>${esc(tf(...v))}</option>`).join("")}</select>
+        <select class="input" data-shape>${o.trace ? `<option value="traced" selected>${tf("Traced from your map", "Прерисувана от вашата карта")}</option>` : ""}${Object.entries(MK.shapes).map(([k, v]) => `<option value="${k}" ${o.shape === k ? "selected" : ""}>${esc(tf(...v))}</option>`).join("")}</select>
         <div class="row" style="margin:6px 0"><button class="btn small" data-new style="flex:1">🎲 ${tf("New land", "Нова суша")}</button></div>
+        <button class="btn small" data-trace style="width:100%;margin-bottom:6px">⇪ ${tf("Trace a map you have…", "Прерисувай ваша карта…")}</button>
+        ${o.trace ? `<div class="faint small" style="margin-bottom:6px">${tf("Traced from your map. Land, sea, forests and mountains follow it; brushes still work.", "Прерисувана от вашата карта. Четките още работят.")} <a href="#" data-untrace>${tf("Stop tracing", "Без прерисуване")}</a></div>` : ""}
         ${slider("land", "Land", "Суша", 10, 90)}${slider("rough", "Rough coasts", "Назъбени брегове")}${slider("mountains", "Mountains", "Планини")}${slider("forests", "Forests", "Гори")}
         ${slider("rivers", "Rivers", "Реки", 0, 30)}${slider("regions", "Regions", "Области", 0, 16)}
-        <label class="small">${tf("Brush size", "Размер на четката")}<input type="range" min="20" max="200" value="${M.state.mkBrush || 70}" data-brush style="width:100%"></label>
+        <label class="small">${tf("Brush size", "Размер на четката")}<input type="range" min="10" max="200" value="${M.state.mkBrush || 70}" data-brush style="width:100%"></label>
+        <label class="small">${tf("Brush strength", "Сила на четката")}<input type="range" min="1" max="10" value="${M.state.mkStrength || 3}" data-strength style="width:100%"></label>
+        <div class="section-sub">${tf("Reference picture", "Картина за образец")}</div>
+        ${o.ref ? `<label class="small" style="display:block"><input type="checkbox" data-refshow ${o.ref.show !== false ? "checked" : ""}> ${tf("Show it over the map", "Покажи я върху картата")}</label>
+          <label class="small">${tf("See-through", "Прозрачност")}<input type="range" min="10" max="90" value="${Math.round((o.ref.opacity ?? .45) * 100)}" data-refop style="width:100%"></label>
+          <div class="row"><button class="btn small ghost" data-ref>${tf("Change", "Смени")}</button><button class="btn small ghost" data-refoff>${tf("Remove", "Махни")}</button></div>`
+          : `<button class="btn small" data-ref style="width:100%">▣ ${tf("Add a reference picture…", "Добави картина за образец…")}</button>
+          <div class="faint small" style="margin-top:4px">${tf("Your own map, shown see-through over the drawing so you can paint along it. It is never part of the saved map.", "Вашата карта, показана прозрачно върху рисунката, за да рисувате по нея. Никога не влиза в запазената карта.")}</div>`}
         <div class="section-sub">${tf("Look", "Вид")}</div>
         <select class="input" data-style><option value="parchment">${tf("Old parchment", "Стар пергамент")}</option><option value="atlas">${tf("Atlas colors", "Цветен атлас")}</option><option value="morgul">${tf("Dark (Morgul)", "Тъмна (Morgul)")}</option></select>
         ${[["regionTint", "Region colors", "Цветове на областите"], ["borders", "Borders", "Граници"], ["compass", "Compass", "Компас"], ["grid", "Grid", "Мрежа"]].map(([k, en, bg]) => `<label class="small" style="display:block"><input type="checkbox" data-c="${k}" ${o[k] ? "checked" : ""}> ${tf(en, bg)}</label>`).join("")}
@@ -229,16 +385,17 @@ Views.mapmaker = (el, r, pane) => {
         <button class="btn small" data-names style="width:100%">✦ ${tf("Name the regions", "Именувай областите")}</button>
         <div class="faint small" style="margin-top:6px">${tf("Names come from your Languages' sample names, or your characters'. Double-click a label to change or delete it.", "Имената идват от примерните имена на езиците ви или от персонажите. Двоен клик върху надпис го променя или трие.")}</div>
       </div>
-      <div class="mk-main"><div class="toolbar">${tools.map(([k, i, l]) => `<button class="btn small ${k === tool ? "on" : ""}" data-tool="${k}" title="${esc(l)}">${i} <span class="small">${esc(l.split(" /")[0])}</span></button>`).join("")}
+      <div class="mk-main"><div class="toolbar">${tools.map(([k, i, l], n) => `<button class="btn small ${k === tool ? "on" : ""}" data-tool="${k}" title="${esc(l)}">${i}${n < 5 || k === "label" ? ` <span class="small">${esc(l.split(" /")[0])}</span>` : ""}</button>`).join("")}
 </div>
-        <div class="mk-stage"><canvas data-cv></canvas></div>
+        <div class="mk-stage"><div class="mk-frame"><canvas data-cv></canvas>${o.ref?.image ? `<img class="mk-ref" data-refimg src="${img(o.ref.image)}" style="opacity:${o.ref.opacity ?? .45};${o.ref.show === false ? "display:none" : ""}">` : ""}</div></div>
         <div class="faint small mk-hint" data-hint></div></div>
     </div></div>`;
   $("[data-style]", el).value = o.style;
   const cv = $("[data-cv]", el);
   let raf = 0; const draw = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { info = MK.render(cv, o); hint(); }); };
   const hint = () => {
-    const h = { look: tf("Drag labels to move them. Double-click one to change it.", "Влачете надписите. Двоен клик ги променя."), raise: tf("Paint to raise land out of the sea, or make high ground higher.", "Рисувайте, за да издигнете суша."),
+    const h = { land: tf("Paint land where your reference has land: it becomes plain lowland, however often you paint over it.", "Рисувайте суша там, където образецът има суша."),
+      sea: tf("Paint sea to cut coasts, bays and lakes.", "Рисувайте море за брегове, заливи и езера."), look: tf("Drag labels to move them. Double-click one to change it.", "Влачете надписите. Двоен клик ги променя."), raise: tf("Paint to raise land out of the sea, or make high ground higher.", "Рисувайте, за да издигнете суша."),
       lower: tf("Paint to lower land, cut bays or dig lakes and channels.", "Рисувайте, за да снишите сушата, да направите заливи или езера."), x: tf("Paint over mountains, hills, forests and towns to clear them.", "Минете върху символи, за да ги изчистите."),
       label: tf("Click where the name should go.", "Щракнете къде да е името.") }[tool] || tf("Click or drag to place.", "Щракнете или влачете, за да поставите.");
     $("[data-hint]", el).textContent = `${h}  ·  ${info.rivers ?? 0} ${tf("rivers", "реки")}  ·  ${tf("Map", "Карта")} ${MK.W}×${MK.H}`;
@@ -260,9 +417,10 @@ Views.mapmaker = (el, r, pane) => {
     push(); drag = { last: null }; cv.setPointerCapture(ev.pointerId); paint(p);
   };
   const paint = p => {
-    if (drag?.last && Math.hypot(p.x - drag.last.x, p.y - drag.last.y) < (["raise", "lower", "x"].includes(tool) ? brush() / 4 : 26)) return;
+    if (drag?.last && Math.hypot(p.x - drag.last.x, p.y - drag.last.y) < (["raise", "lower", "x", "land", "sea"].includes(tool) ? brush() / 4 : 26)) return;
     drag.last = p; const R = brush();
-    if (tool === "raise" || tool === "lower") o.strokes.push({ x: Math.round(p.x), y: Math.round(p.y), r: R, a: tool === "raise" ? .16 : -.2 });
+    if (tool === "land" || tool === "sea") { o.strokes.push({ x: Math.round(p.x), y: Math.round(p.y), r: R, set: tool === "land" ? .12 : -.25 }); draw(); return; }
+    if (tool === "raise" || tool === "lower") { const k = (+M.state.mkStrength || 3) / 3; o.strokes.push({ x: Math.round(p.x), y: Math.round(p.y), r: R, a: (tool === "raise" ? .16 : -.2) * k }); }
     else if (tool === "x") { o.stamps = o.stamps.filter(s => s.k === "x" || (s.x - p.x) ** 2 + (s.y - p.y) ** 2 > R * R); o.stamps.push({ k: "x", x: Math.round(p.x), y: Math.round(p.y), r: R }); }
     else o.stamps.push({ k: tool, x: Math.round(p.x + (Math.random() - .5) * 6), y: Math.round(p.y + (Math.random() - .5) * 6), s: tool === "m" ? 1.1 + Math.random() * .4 : 1 });
     draw();
@@ -272,15 +430,32 @@ Views.mapmaker = (el, r, pane) => {
   cv.ondblclick = async ev => { const l = labelAt(pos(ev)); if (!l) return; const r = await editLabel(l); if (!r) return; push(); if (r === "del") o.labels = o.labels.filter(x => x !== l); else Object.assign(l, r); draw(); };
   $$("[data-tool]", el).forEach(b => b.onclick = () => { tool = b.dataset.tool; $$("[data-tool]", el).forEach(x => x.classList.toggle("on", x === b)); cv.style.cursor = tool === "look" ? "grab" : "crosshair"; hint(); });
   $("[data-brush]", el).oninput = e => { M.state.mkBrush = +e.target.value; saveState(); };
+  $("[data-strength]", el).oninput = e => { M.state.mkStrength = +e.target.value; saveState(); };
+  const setRef = async file => { const [f] = await Entry.upload([file]); if (!f) return; o.ref = { image: f, opacity: .45, show: true }; dirty = true; rerender(); };
+  $("[data-ref]", el).onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => i.files[0] && setRef(i.files[0]); i.click(); };
+  $("[data-refoff]", el)?.addEventListener("click", () => { delete o.ref; dirty = true; rerender(); });
+  $("[data-refshow]", el)?.addEventListener("change", e => { o.ref.show = e.target.checked; $("[data-refimg]", el).style.display = e.target.checked ? "" : "none"; });
+  $("[data-refop]", el)?.addEventListener("input", e => { o.ref.opacity = +e.target.value / 100; $("[data-refimg]", el).style.opacity = o.ref.opacity; });
   $$("[data-s]", el).forEach(s => s.oninput = () => { o[s.dataset.s] = +s.value; $(`[data-v="${s.dataset.s}"]`, el).textContent = s.value; dirty = true; draw(); });
   $$("[data-c]", el).forEach(c => c.onchange = () => { o[c.dataset.c] = c.checked; dirty = true; draw(); });
-  $("[data-shape]", el).onchange = e => { o.shape = e.target.value; dirty = true; draw(); };
+  $("[data-shape]", el).onchange = e => { if (o.trace && e.target.value !== "traced") { push(); delete o.trace; MK._cache = null; } o.shape = e.target.value; dirty = true; o.trace ? draw() : rerender(); };
   $("[data-style]", el).onchange = e => { o.style = e.target.value; dirty = true; draw(); };
   $("[data-new]", el).onclick = async () => {
     if ((o.strokes.length || o.stamps.length) && !await modal(tf("New land", "Нова суша"), `<p>${tf("New land clears what you painted by hand (labels stay). ↶ Undo brings it back.", "Новата суша изчиства нарисуваното на ръка (надписите остават). ↶ Отмени го връща.")}</p>`,
       { buttons: [{ label: t("Cancel"), value: false }, { label: tf("New land", "Нова суша"), cls: "primary", value: true }] })) return;
     push(); o.seed = Math.floor(Math.random() * 1e9); o.strokes = []; o.stamps = []; draw();
   };
+  const trace = async (src, fromImage) => {
+    const tr = await Trace.dialog(src); if (!tr) return;
+    if (fromImage) tr.fit = fromImage;      // pins, routes and layers on that picture move with it when saved
+    if (fromImage && !o.ref) o.ref = { image: fromImage, opacity: .45, show: false };
+    push(); o.trace = tr; o.shape = "traced"; o.strokes = []; o.stamps = []; o.rivers = Math.min(o.rivers, 4); MK._cache = null;
+    if (entry || r.id) dirty = true; rerender();
+  };
+  const rerender = () => { const keep = structuredClone(o); Views.mapmaker.pending = keep; Views.mapmaker(el, r, pane); };
+  $("[data-trace]", el).onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => i.files[0] && trace(URL.createObjectURL(i.files[0])); i.click(); };
+  $("[data-untrace]", el)?.addEventListener("click", ev => { ev.preventDefault(); push(); delete o.trace; o.shape = "continent"; MK._cache = null; rerender(); });
+  if (r.trace && !o.trace && entry?.map?.image) { r.trace = false; setTimeout(() => trace(img(entry.map.image), entry.map.image), 50); }
   $("[data-undo]", el).onclick = () => { const u = undo.pop(); if (!u) return; const x = JSON.parse(u); o.strokes = x.s; o.stamps = x.t; o.labels = x.l; o.seed = x.seed ?? o.seed; draw(); };
   $("[data-names]", el).onclick = () => {
     const seeds = info.seeds || []; if (!seeds.length) return toast(tf("Add some regions first (the Regions slider).", "Първо добавете области."), "error");
@@ -300,7 +475,15 @@ Views.mapmaker = (el, r, pane) => {
       if (!cur) { name = await promptBox(tf("Name of the map", "Име на картата"), tf("The known world", "Познатият свят")); if (name === null) return; }
       const [file] = await Entry.upload([new File([blob], `${name || "map"} (map maker).png`, { type: "image/png" })]); if (!file) return;
       const maker = structuredClone(o);
-      if (cur) { await saveEntry({ ...cur, map: { ...(cur.map || {}), image: file, maker } }, null, true); dirty = false; toast(tf("Map saved. Pins, routes and layers are kept.", "Картата е запазена. Пиновете, маршрутите и слоевете са запазени.")); Panes.show({ view: "map", id: cur.id }, pane); }
+      let mp = { ...(cur?.map || {}) };
+      if (cur && o.trace?.fit && mp.image === o.trace.fit) {          // first save after tracing this map's own picture
+        const k = Math.min(MK.W / o.trace.nw, MK.H / o.trace.nh), ox = (MK.W - o.trace.nw * k) / 2, oy = (MK.H - o.trace.nh * k) / 2;
+        const P = ([x, y]) => [Math.round(ox + x * k), Math.round(oy + y * k)];
+        mp = { ...mp, pins: (mp.pins || []).map(p => { const [x, y] = P([p.x, p.y]); return { ...p, x, y }; }), routes: (mp.routes || []).map(rt => ({ ...rt, pts: (rt.pts || []).map(P) })),
+          layers: (mp.layers || []).map(l => ({ ...l, shapes: (l.shapes || []).map(sh => ({ ...sh, pts: (sh.pts || []).map(P) })) })), ...(mp.scale ? { scale: mp.scale / k } : {}) };
+        maker.trace = { ...maker.trace, fit: null };
+      }
+      if (cur) { await saveEntry({ ...cur, map: { ...mp, image: file, maker } }, null, true); dirty = false; toast(tf("Map saved. Pins, routes and layers are kept.", "Картата е запазена. Пиновете, маршрутите и слоевете са запазени.")); Panes.show({ view: "map", id: cur.id }, pane); }
       else { const e = await createEntry("map", name || "Map", { map: { image: file, pins: [], layers: [], routes: [], maker }, status: "canon" }); dirty = false;
         toast(tf("Saved. Now add pins for your places.", "Запазено. Сега добавете пинове за местата.")); Panes.show({ view: "map", id: e.id }, pane); }
     } finally { ev.target.disabled = false; }
@@ -323,8 +506,8 @@ Views.mapmaker = (el, r, pane) => {
     const e = M.entries.get(r.id); if (!e) return;
     const row = $(".pane-head .row", el) || $(".pane-head", el); if (!row) return;
     const b = document.createElement("button"); b.className = "btn small ghost";
-    b.innerHTML = e.map?.maker ? `✦ ${tf("Edit in map maker", "Промени в създаването")}` : `✦ ${tf("Redraw in map maker", "Нарисувай наново")}`;
-    b.title = e.map?.maker ? "" : tf("Makes a new drawn map for this entry; your picture stays in the entry's history and pins are kept.", "Прави нова нарисувана карта за този запис; пиновете остават.");
-    b.onclick = () => Panes.show({ view: "mapmaker", id: e.id }, pane); row.prepend(b);
+    b.innerHTML = e.map?.maker ? `✦ ${tf("Edit in map maker", "Промени в създаването")}` : `⇪ ${tf("Trace into map maker", "Прерисувай в създаването")}`;
+    b.title = e.map?.maker ? "" : tf("Reads land, sea, forests and mountains from this picture and makes an editable map. Pins are kept; your picture stays in the entry's history.", "Чете суша, море, гори и планини от картината и прави карта за редактиране. Пиновете остават.");
+    b.onclick = () => Panes.show({ view: "mapmaker", id: e.id, trace: !e.map?.maker }, pane); row.prepend(b);
   };
 })();

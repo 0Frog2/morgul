@@ -1,6 +1,15 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.6.0", items: [
+    "<b>A shorter sidebar.</b> It now holds your daily places, the types you actually use, and only the tools you <b>pin</b>. <b>⋯ All tools</b> shows everything in groups; ☆ pins a tool to the sidebar. Click World or Tools to fold a section. Quick note, AI, Help and Settings sit in one row at the bottom, and contradictions show as a ⚖ number on I'm stuck.",
+    "<b>Trace a map you have</b> (map maker, or ⇪ on a map's page): Morgul reads sea, land, forests and mountains from your picture's colours and ignores outlines and writing. Correct it by clicking colours in your picture; it becomes an editable map. Pins and routes on that map move with it.",
+    "<b>Reference picture:</b> show your own map see-through over the map maker and draw along it. Start from <b>Empty sea</b> and use the new <b>Paint land</b> and <b>Paint sea</b> brushes, plus a <b>brush strength</b> slider.",
+  ], bg: [
+    "<b>По-кратка странична лента:</b> ежедневните места, видовете, които ползвате, и само <b>закачените</b> инструменти. <b>⋯ Всички инструменти</b> показва всичко; ☆ закача. Щракнете Свят или Инструменти, за да сгънете раздела. Бърза бележка, ИИ, Помощ и Настройки са на един ред долу.",
+    "<b>Прерисуване на ваша карта:</b> Morgul чете море, суша, гори и планини по цветовете и пропуска линиите и надписите. Поправяте с щракване върху цветовете; става карта за редактиране. Пиновете се местят с нея.",
+    "<b>Образец:</b> вашата карта прозрачно върху създаването на карта, за да рисувате по нея. Започнете от <b>Празно море</b> с новите четки <b>Рисувай суша</b> и <b>Рисувай море</b> и <b>сила на четката</b>.",
+  ] },
   { v: "1.5.0", items: [
     "<b>Boards</b> (sidebar, ▤): free <b>corkboards</b> for plotting — notes, entry cards, pictures, colors and headings you move around and tie together with <b>red string</b> (with labels). Pan, zoom, drop pictures straight from your computer.",
     "<b>Mood boards</b>: pictures, colors and words for the feel of a place, a people or a book. Every entry's page can start its own mood board from its pictures.",

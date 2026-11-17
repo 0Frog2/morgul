@@ -497,3 +497,36 @@ body.no-glow { --accent-glow: transparent; --accent-halo: transparent; }
 .init-row .main { min-width: 140px; }
 .init-row.now { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
 .init-row.down { opacity: .5; text-decoration: line-through; }
+
+/* 1.6.0 tidy sidebar */
+.nav-group.fold { display: flex; align-items: center; cursor: pointer; user-select: none; border-radius: 6px; margin-top: 6px; }
+.nav-group.fold:hover { color: var(--muted); }
+.nav-group.fold span { flex: 1; }
+.nav-mini { border: 0; background: none; color: var(--faint); font-size: 13px; padding: 0 6px; cursor: pointer; border-radius: 5px; }
+.nav-mini:hover { color: var(--text); background: var(--raised); }
+.nav-item .badge[data-contra] { cursor: pointer; margin-left: auto; }
+.nav-item .badge[data-contra] + .count { margin-left: 6px; }
+.side-foot { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 6px; }
+.foot-btn[hidden] { display: none; }
+.foot-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; background: transparent; border: 0; border-radius: 7px; padding: 6px 2px; color: var(--muted); cursor: pointer; font: 10.5px var(--sans); }
+.foot-btn i { font-style: normal; font-size: 15px; color: var(--accent); }
+.foot-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.foot-btn:hover, .foot-btn.on { background: var(--raised); color: var(--text); }
+.tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.tool-tile { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r8); background: var(--panel); cursor: pointer; }
+.tool-tile:hover { border-color: var(--accent); }
+.tool-tile > i { font-style: normal; font-size: 20px; width: 26px; text-align: center; color: var(--accent); }
+.tool-tile .main { flex: 1; min-width: 0; }
+.tool-tile .t { font-weight: 600; }
+.tool-tile .d { font-size: 12px; color: var(--muted); }
+.tool-tile .pin { border: 0; background: none; font-size: 17px; color: var(--faint); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.tool-tile .pin:hover { background: var(--raised); color: var(--text); }
+.tool-tile .pin.on { color: var(--warn); }
+
+.trace-src { width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); cursor: crosshair; image-rendering: auto; display: block; }
+.modal.xwide { width: min(1300px, 94vw); max-width: none; }
+
+.mk-stage { container-type: size; }
+.mk-frame { position: relative; width: min(100cqw, 100cqh * 1.4545); aspect-ratio: 1600 / 1100; box-shadow: 0 6px 30px #0008; }
+.mk-frame canvas { width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; display: block; box-shadow: none !important; }
+.mk-ref { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; mix-blend-mode: normal; }
