@@ -170,6 +170,9 @@ const DEFAULT_WORLD = {
       F("pronunciation", "Pronunciation", "text"), F("language", "Language", "link", { to: ["language"] }), F("meaning", "Meaning", "long") ] },
     { key: "map", name: "Map", bg: "Карта", icon: "⌖", color: "#7FB0C9", fields: [ F("of", "Map of", "link", { to: ["location"] }) ] },
     { key: "note", name: "Note", bg: "Бележка", icon: "✎", color: "#8EA5B6", fields: [] },
+    { key: "session", name: "Game session", bg: "Игрова сесия", icon: "⚄", color: "#B79AD6", fields: [
+      F("number", "Session number", "number"), F("played", "Played on", "text"), F("date", "In-world date", "date"), F("players", "Players", "text"),
+      F("where", "Where", "link", { to: ["location"] }) ] },
   ],
   important: {   // fields whose absence makes an entry show up under "I'm stuck"
     character: ["born", "appearance", "personality", "faction"], location: ["kind", "partOf"], event: ["date", "participants"],
@@ -188,6 +191,7 @@ const DEFAULT_WORLD = {
 };
 
 const FIELD_BG = {
+  "Session number": "Номер на сесията", "Played on": "Играна на", "In-world date": "Дата в света", "Players": "Играчи",
   "Number in series": "Номер в поредицата", "Subtitle": "Подзаглавие", "Author name": "Име на автора", "Stage": "Етап", "Word goal": "Цел (думи)", "Blurb": "Анотация",
   "Book": "Книга", "Chapter": "Глава", "Order in chapter": "Ред в главата", "What happens": "Какво се случва",
   "Government": "Управление", "Cultures": "Култури", "Economy and trade": "Икономика и търговия", "Defenses": "Отбрана", "Notable places": "Забележителни места",

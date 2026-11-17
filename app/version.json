@@ -1,9 +1,11 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "date": "2026-11-17",
   "repo": "0Frog2/morgul",
   "notes": [
-    "Map maker: generate and paint maps, save as Map entries",
-    "Heraldry: coats of arms for entries"
+    "Corkboards and mood boards",
+    "World milestones: compare and restore",
+    "A world as one file",
+    "Game master tools"
   ]
 }

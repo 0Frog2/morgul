@@ -1,6 +1,21 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.5.0", items: [
+    "<b>Boards</b> (sidebar, ▤): free <b>corkboards</b> for plotting — notes, entry cards, pictures, colors and headings you move around and tie together with <b>red string</b> (with labels). Pan, zoom, drop pictures straight from your computer.",
+    "<b>Mood boards</b>: pictures, colors and words for the feel of a place, a people or a book. Every entry's page can start its own mood board from its pictures.",
+    "<b>Milestones</b> (⚑): save your whole world under a name (“End of draft one”). See what changed since — new, changed and deleted entries, words added — bring back single entries, or go back to it completely (the present is saved first, so nothing is lost).",
+    "<b>Share a world as one file:</b> Settings → Worlds → Save this world as one file makes a <b>.morgulworld</b> file with everything in it. Open a world file… unpacks one into a new folder.",
+    "<b>Game master</b> (⚄): <b>session notes</b> that carry loose threads forward, <b>stat blocks</b> for any game system, <b>encounters</b> rolled from the creatures that live in a place, an <b>initiative tracker</b> with health and conditions, and a <b>dice roller</b> (2d6+3, 4d6kh3, advantage).",
+    "New entry type: <b>Game session</b>.",
+  ], bg: [
+    "<b>Табла</b> (отстрани, ▤): свободни <b>коркови табла</b> за сюжета — бележки, записи, картини, цветове и заглавия, свързани с <b>червен конец</b>. Местене, мащаб и пускане на картини от компютъра.",
+    "<b>Табла с настроение</b>: картини, цветове и думи за място, народ или книга. Всеки запис може да започне свое табло от картините си.",
+    "<b>Етапи</b> (⚑): запазете целия свят под име. Вижте какво се е променило, върнете отделни записи или целия свят (настоящето се запазва първо).",
+    "<b>Свят като един файл:</b> Настройки → Светове → Запази света като един файл прави <b>.morgulworld</b>. Отвори файл на свят… го разопакова.",
+    "<b>Водещ</b> (⚄): <b>бележки за сесии</b>, <b>характеристики</b> за всяка игра, <b>срещи</b> според създанията на мястото, <b>инициатива</b> с живот и състояния и <b>зарове</b>.",
+    "Нов вид запис: <b>Игрова сесия</b>.",
+  ] },
   { v: "1.4.0", items: [
     "<b>Map maker</b> (Maps → ✦ Make a map): draws a map for you — a continent, islands, an archipelago, a coast, a single region or land with lakes — with coastlines, mountains, hills, forests, rivers that run to the sea, regions with borders, and a compass. Three looks: old parchment, atlas colors, or dark.",
     "Paint it by hand: <b>raise or lower land</b> with a brush (pull islands out of the sea, cut bays, dig lakes), stamp <b>mountains, hills, forests, towns and castles</b>, clear symbols, and add <b>labels</b> for places, regions and seas. ↶ Undo works for all of it.",

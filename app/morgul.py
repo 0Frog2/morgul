@@ -361,6 +361,181 @@ def backup(force=False):
     return str(target)
 
 
+# ---------------------------------------------------------------- milestones: named snapshots of the whole world
+# Kept inside the world (_morgul/milestones/*.zip + .json) so they travel with it. Restoring always saves the
+# current state as a milestone first, so nothing is ever lost.
+MILESTONES = META / "milestones"
+
+
+def _world_zip(target: Path, include_milestones=False):
+    with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in WORLD.rglob("*"):
+            if not p.is_file() or "_trash" in p.parts or p.suffix == ".tmp":
+                continue
+            rel = p.relative_to(WORLD)
+            if not include_milestones and rel.parts[:2] == ("_morgul", "milestones"):
+                continue
+            if rel.parts[:2] == ("_morgul", "milestones") or rel.parts[:1] == ("_history",):
+                continue                                   # history and milestones never go into a shared file
+            z.write(p, rel.as_posix())
+
+
+def _entry_from_text(text, name="entry"):
+    meta, body = {}, text
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end != -1:
+            try:
+                meta = json.loads(text[3:end].strip())
+            except json.JSONDecodeError:
+                meta = {}
+            body = text[end + 4:].lstrip("\n")
+    meta["body"] = body
+    meta.setdefault("id", Path(name).stem)
+    meta.setdefault("title", Path(name).stem)
+    return meta
+
+
+def _zip_entries(z):
+    out = []
+    for n in z.namelist():
+        parts = Path(n).parts
+        if n.endswith(".md") and parts and parts[0] not in SKIP_DIRS:
+            try:
+                out.append(_entry_from_text(z.read(n).decode("utf-8"), n))
+            except Exception as e:
+                log("milestone entry", n, e)
+    return out
+
+
+def milestone_make(name, note="", auto=False):
+    MILESTONES.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now()
+    base = f"{stamp:%Y-%m-%d %H%M%S} {slug(name)[:60]}"
+    target = MILESTONES / f"{base}.zip"
+    with LOCK:
+        _world_zip(target)
+        entries = scan()
+    words = sum(len(re.findall(r"\w+", e.get("body") or "")) for e in entries)
+    types = {}
+    for e in entries:
+        types[e.get("type", "note")] = types.get(e.get("type", "note"), 0) + 1
+    info = {"file": target.name, "name": name, "note": note, "date": stamp.isoformat(timespec="seconds"), "entries": len(entries),
+            "words": words, "types": types, "auto": auto, "size": target.stat().st_size}
+    (MILESTONES / f"{base}.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
+    log("milestone", target.name)
+    return info
+
+
+def milestone_list():
+    out = []
+    for j in sorted(MILESTONES.glob("*.json"), reverse=True) if MILESTONES.exists() else []:
+        try:
+            info = json.loads(j.read_text(encoding="utf-8"))
+            if (MILESTONES / info["file"]).exists():
+                out.append(info)
+        except (OSError, ValueError, KeyError):
+            pass
+    return out
+
+
+def _milestone_path(file):
+    p = MILESTONES / Path(str(file)).name
+    if p.suffix != ".zip" or not p.exists():
+        raise FileNotFoundError("That milestone wasn't found.")
+    return p
+
+
+def milestone_entries(file):
+    with zipfile.ZipFile(_milestone_path(file)) as z:
+        return _zip_entries(z)
+
+
+def milestone_restore_entry(file, eid):
+    for e in milestone_entries(file):
+        if e.get("id") == eid:
+            e.pop("updated", None)
+            cur = FOLDERS.get(eid)
+            prev = read_entry(cur)["title"] if cur and cur.exists() else None
+            return save_entry(e, prev, snap="force")[0]
+    raise KeyError("That entry isn't in the milestone.")
+
+
+def milestone_restore(file):
+    """Put the whole world back as it was. The current world is saved as a milestone (and a backup) first."""
+    src = _milestone_path(file)
+    info = next((m for m in milestone_list() if m["file"] == src.name), {"name": src.stem})
+    safety = milestone_make(f"Before going back to {info.get('name')}", "Made automatically before restoring.", auto=True)
+    backup(force=True)
+    with LOCK:
+        for p in list(WORLD.rglob("*.md")):              # current entries (all saved in the safety milestone)
+            rel = p.relative_to(WORLD).parts
+            if rel and rel[0] not in SKIP_DIRS:
+                p.unlink()
+        with zipfile.ZipFile(src) as z:
+            for n in z.namelist():
+                parts = Path(n).parts
+                if not parts or ".." in parts or Path(n).is_absolute():
+                    continue
+                keep_current = parts[0] == "_morgul" and parts[-1] != "world.json"      # settings, state, sessions stay
+                if keep_current or (parts[0] == "assets" and (WORLD / n).exists()):
+                    continue
+                dest = WORLD / n
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(z.read(n))
+        scan()
+        for d in sorted((x for x in WORLD.rglob("*") if x.is_dir()), key=lambda x: -len(x.parts)):    # tidy empty type folders
+            if d.relative_to(WORLD).parts[0] not in SKIP_DIRS and not any(d.iterdir()):
+                d.rmdir()
+    return {"ok": True, "safety": safety["file"]}
+
+
+def milestone_delete(file):
+    p = _milestone_path(file)
+    TRASH.mkdir(exist_ok=True)
+    shutil.move(str(p), TRASH / p.name)                  # to the Trash, not gone
+    p.with_suffix(".json").unlink(missing_ok=True)
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------- a whole world as one file (.morgulworld)
+def world_export_file():
+    EXPORTS.mkdir(exist_ok=True)
+    w = jload("world.json", {}) or {}
+    name = slug(w.get("name") or WORLD.name)
+    target = EXPORTS / f"{name} {datetime.now():%Y-%m-%d}.morgulworld"
+    n = 2
+    while target.exists():
+        target = EXPORTS / f"{name} {datetime.now():%Y-%m-%d} ({n}).morgulworld"
+        n += 1
+    with LOCK:
+        _world_zip(target)
+    return {"file": str(target), "size": target.stat().st_size}
+
+
+def world_import_file(data: bytes, dest):
+    import io
+    try:
+        z = zipfile.ZipFile(io.BytesIO(data))
+    except zipfile.BadZipFile:
+        return {"error": "That isn't a Morgul world file."}
+    names = z.namelist()
+    if "_morgul/world.json" not in names and not any(n.endswith(".md") for n in names):
+        return {"error": "That isn't a Morgul world file."}
+    r = world_open(dest, create=True)
+    if not r.get("ok"):
+        return r
+    root = Path(dest).expanduser().resolve()
+    for n in names:
+        target = (root / n).resolve()
+        if root not in target.parents or n.endswith("/"):
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(z.read(n))
+    log("world imported into", root)
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------- version & updates (like Oracle 2)
 # The code is published at github.com/<repo>. Its "release" branch always holds the newest released version
 # (main may hold work in progress). Morgul only goes online to read the tiny version file there,
@@ -1083,8 +1258,11 @@ class H(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def body(self):
-        n = int(self.headers.get("Content-Length") or 0)
-        return self.rfile.read(n) if n else b""
+        # read once and keep it: a body left unread would spoil the next request on the same connection
+        if getattr(self, "_body", None) is None:
+            n = int(self.headers.get("Content-Length") or 0)
+            self._body = self.rfile.read(n) if n else b""
+        return self._body
 
     def jbody(self):
         try:
@@ -1171,6 +1349,8 @@ class H(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         route = u.path[5:] if u.path.startswith("/api/") else ""
         q = parse_qs(u.query)
+        self._body = None
+        self.body()
         if route == "ping":
             return self.send_json({"ok": True})
         if route == "entry":
@@ -1253,6 +1433,34 @@ class H(BaseHTTPRequestHandler):
             for f in files:
                 (TRASH / Path(f).name).unlink(missing_ok=True)
             return self.send_json({"ok": True})
+        if route == "milestones":
+            self.jbody()                                   # always read the body, or it spoils the next request on this connection
+            return self.send_json({"list": milestone_list()})
+        if route.startswith("milestone/"):
+            b, act = self.jbody(), route.split("/", 1)[1]
+            try:
+                if act == "make":
+                    return self.send_json(milestone_make(b.get("name") or "Milestone", b.get("note", "")))
+                if act == "entries":
+                    return self.send_json({"entries": milestone_entries(b.get("file"))})
+                if act == "restore-entry":
+                    return self.send_json({"entry": milestone_restore_entry(b.get("file"), b.get("id"))})
+                if act == "restore":
+                    return self.send_json(milestone_restore(b.get("file")))
+                if act == "delete":
+                    return self.send_json(milestone_delete(b.get("file")))
+            except (OSError, KeyError, zipfile.BadZipFile) as e:
+                return self.send_json({"error": str(e).strip("'")}, 400)
+        if route == "world/export":
+            self.jbody()
+            return self.send_json(world_export_file())
+        if route == "world/import":
+            dest = unquote(q.get("dest", [""])[0])
+            r = world_import_file(self.body(), dest)
+            self.send_json(r, 200 if r.get("ok") else 400)
+            if r.get("ok"):
+                threading.Thread(target=restart, daemon=True).start()
+            return
         if route == "compile":
             try:
                 r = compile_book(self.jbody())
