@@ -1,9 +1,10 @@
 {
-  "version": "1.6.1",
+  "version": "1.7.0",
   "date": "2026-11-17",
   "repo": "0Frog2/morgul",
   "notes": [
-    "Slavic and Old Bulgarian names in the name generator, Latin or Cyrillic",
-    "Choice fields show proper labels in English and Bulgarian"
+    "Hover explanations everywhere",
+    "Tidy up: AI cleans up rambling, you compare and accept",
+    "Own pictures and movable figures in coats of arms"
   ]
 }

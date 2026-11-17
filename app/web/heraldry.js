@@ -68,7 +68,11 @@ const HER = {
     wolf: ["wolf's head", "вълча глава", '<path d="M-14,-20 L-6,-8 H6 L14,-20 L16,-2 L24,10 L8,14 L4,22 H-4 L-8,14 L-24,10 L-16,-2 Z"/>'],
   },
   counts: { 1: [[100, 122, 1.45]], 2: [[66, 112, 1], [134, 112, 1]], 3: [[64, 88, .9], [136, 88, .9], [100, 162, .9]], 4: [[64, 82, .78], [136, 82, .78], [64, 150, .78], [136, 150, .78]] },
-  defaults: () => ({ shield: "heater", division: "plain", t1: "sable", t2: "argent", ordinary: "none", ot: "or", charge: "star", ct: "argent", count: 1, motto: "" }),
+  defaults: () => ({ shield: "heater", division: "plain", t1: "sable", t2: "argent", ordinary: "none", ot: "or", charge: "star", ct: "argent", count: 1, motto: "",
+    dx: 0, dy: 0, size: 1, chargeImg: "", recolor: true, full: "" }),
+  // where the figures sit (before moving): the middle of their layout
+  centerOf(a) { let pos = HER.counts[a.count] || HER.counts[1]; if (a.ordinary === "chief") pos = pos.map(([x, y, s]) => [x, y + 18, s * .9]);
+    return [pos.reduce((t, p) => t + p[0], 0) / pos.length, pos.reduce((t, p) => t + p[1], 0) / pos.length]; },
   color: k => (HER.tinctures[k] || HER.tinctures.sable)[0],
   svg(a, size = 120) {
     a = { ...HER.defaults(), ...(a || {}) };
@@ -78,20 +82,28 @@ const HER = {
     let ordSvg = "";
     if (ord === "bordure") ordSvg = `<path d="${shield}" fill="none" stroke="${HER.color(a.ot)}" stroke-width="34"/>`;
     else if (ord) ordSvg = `<path d="${ord}" fill="${HER.color(a.ot)}"/>`;
-    const ch = (HER.charges[a.charge] || ["", "", ""])[2];
+    // the figure: a built-in shape, or your own picture (kept in its colours, or painted in the chosen colour through its transparency)
+    const own = a.charge === "img" && a.chargeImg;
+    let ch = own ? (a.recolor ? `<rect x="-22" y="-22" width="44" height="44" fill="${HER.color(a.ct)}" mask="url(#${id}k)"/>` : `<image href="${img(a.chargeImg)}" x="-22" y="-22" width="44" height="44" preserveAspectRatio="xMidYMid meet"/>`)
+      : (HER.charges[a.charge] || ["", "", ""])[2];
     let pos = HER.counts[a.count] || HER.counts[1];
     if (a.ordinary === "chief") pos = pos.map(([x, y, s]) => [x, y + 18, s * .9]);
-    const charges = ch ? pos.map(([x, y, s]) => `<g transform="translate(${x},${y}) scale(${s})" fill="${HER.color(a.ct)}" stroke="#0007" stroke-width="1">${ch}</g>`).join("") : "";
+    const [gx, gy] = HER.centerOf(a), sz = +a.size || 1;
+    const charges = ch ? `<g data-charges="1" transform="translate(${gx + (+a.dx || 0)},${gy + (+a.dy || 0)}) scale(${sz}) translate(${-gx},${-gy})">${pos.map(([x, y, s]) => `<g transform="translate(${x},${y}) scale(${s})" fill="${HER.color(a.ct)}" stroke="${own ? "none" : "#0007"}" stroke-width="1">${ch}</g>`).join("")}</g>` : "";
     const motto = a.motto ? `<path id="${id}m" d="M20,254 Q100,272 180,254" fill="none"/><path d="M8,244 Q100,266 192,244 L196,262 Q100,284 4,262 Z" fill="#E9E6DD" stroke="#3b2f22" stroke-width="1.5"/>
       <text font-family="Georgia, serif" font-size="13" font-style="italic" fill="#2b2118" text-anchor="middle"><textPath href="#${id}m" startOffset="50%">${esc(a.motto)}</textPath></text>` : "";
+    if (a.full) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 ${a.motto ? 284 : 240}" width="${size}" height="${Math.round(size * (a.motto ? 284 : 240) / 200)}" class="arms">
+      <image href="${img(a.full)}" x="0" y="0" width="200" height="240" preserveAspectRatio="xMidYMid meet"/>${motto}</svg>`;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 ${a.motto ? 284 : 240}" width="${size}" height="${Math.round(size * (a.motto ? 284 : 240) / 200)}" class="arms">
-      <defs><clipPath id="${id}"><path d="${shield}"/></clipPath><linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient></defs>
+      <defs><clipPath id="${id}"><path d="${shield}"/></clipPath>${own && a.recolor ? `<mask id="${id}k" maskUnits="userSpaceOnUse" x="-23" y="-23" width="46" height="46" style="mask-type:alpha"><image href="${img(a.chargeImg)}" x="-22" y="-22" width="44" height="44" preserveAspectRatio="xMidYMid meet"/></mask>` : ""}<linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient></defs>
       <g clip-path="url(#${id})"><rect width="200" height="240" fill="${HER.color(a.t1)}"/>${div ? `<path d="${div}" fill="${HER.color(a.t2)}"/>` : ""}${ordSvg}${charges}<rect width="200" height="240" fill="url(#${id}g)"/></g>
       <path d="${shield}" fill="none" stroke="#000" stroke-opacity=".7" stroke-width="3"/>${motto}</svg>`;
   },
   // the written description (blazon); English uses heraldic terms, Bulgarian plain words
   blazon(a) {
     a = { ...HER.defaults(), ...(a || {}) }; const bg = M.settings.language === "bg";
+    if (a.full) return tf("Your own picture", "Ваша картина") + (a.motto ? ` · “${a.motto}”` : "");
+    if (a.charge === "img") a = { ...a, charge: "none", _own: true };
     const T = k => { const x = HER.tinctures[k] || HER.tinctures.sable; return bg ? x[2] : x[1].toLowerCase(); };
     const parts = [];
     const d = HER.divisions[a.division] || HER.divisions.plain;
@@ -110,6 +122,7 @@ const HER = {
       const num = bg ? ["", "", "две", "три", "четири"][n] : ["", "a", "two", "three", "four"][n];
       parts.push(`${n === 1 && bg ? "" : num + " "}${word} ${T(a.ct)}`.trim());
     }
+    if (a._own) parts.push(`${["", "", tf("two", "две"), tf("three", "три"), tf("four", "четири")][+a.count] || ""} ${tf("figures of your own", "ваши фигури")}${a.recolor ? " " + T(a.ct) : ""}`.trim());
     return parts.join(", ") + (a.motto ? ` · “${a.motto}”` : "");
   },
   random(seedTitle = "") {
@@ -134,14 +147,21 @@ const HER = {
     const sel = (key, table, bgIdx = 1) => `<select class="input" data-k="${key}">${Object.entries(table).map(([k, v]) => `<option value="${k}" ${String(a[key]) === k ? "selected" : ""}>${esc(M.settings.language === "bg" ? v[bgIdx] : v[0])}</option>`).join("")}</select>`;
     const tin = key => `<div class="her-tins" data-t="${key}">${Object.entries(HER.tinctures).map(([k, v]) => `<span class="her-tin ${a[key] === k ? "on" : ""}" data-v="${k}" title="${esc(M.settings.language === "bg" ? v[2] : v[1])}" style="background:${v[0]}"></span>`).join("")}</div>`;
     const res = await modal(`⛨ ${tf("Coat of arms", "Герб")}${title ? " · " + esc(title) : ""}`, `<div class="grid" style="grid-template-columns:220px minmax(0,1fr);gap:18px;align-items:start">
-        <div style="text-align:center"><div data-prev></div><div class="small faint" data-blz style="margin-top:6px"></div>
-          <button class="btn small" data-rand style="margin-top:8px">🎲 ${tf("Random", "Случаен")}</button></div>
+        <div style="text-align:center"><div data-prev class="her-prev"></div><div class="small faint" data-blz style="margin-top:6px"></div>
+          <button class="btn small" data-rand style="margin-top:8px">🎲 ${tf("Random", "Случаен")}</button>
+          <div style="margin-top:10px"><button class="btn small ghost" data-full>▣ ${a.full ? tf("Design it instead", "Създай го тук") : tf("Use a picture of the whole arms…", "Цял герб от картина…")}</button></div></div>
         <div class="form-grid her-form">
           <label>${tf("Shape", "Форма")}</label>${sel("shield", HER.shields)}
           <label>${tf("Field", "Поле")}</label><div>${sel("division", HER.divisions)}${tin("t1")}${tin("t2")}</div>
           <label>${tf("Band or cross", "Лента или кръст")}</label><div>${sel("ordinary", HER.ordinaries)}${tin("ot")}</div>
-          <label>${tf("Charge", "Фигура")}</label><div class="row">${sel("charge", HER.charges)}<select class="input" data-k="count" style="width:auto">${[1, 2, 3, 4].map(n => `<option ${+a.count === n ? "selected" : ""}>${n}</option>`).join("")}</select></div><div></div>${tin("ct")}
-          <label>${tf("Motto", "Девиз")}</label><input class="input" data-k="motto" value="${esc(a.motto)}" placeholder="${tf("optional", "по избор")}">
+          <label>${tf("Charge", "Фигура")}</label><div class="row"><select class="input" data-k="charge">${Object.entries(HER.charges).map(([k, v]) => `<option value="${k}" ${a.charge === k ? "selected" : ""}>${esc(M.settings.language === "bg" ? v[1] : v[0])}</option>`).join("")}<option value="img" ${a.charge === "img" ? "selected" : ""}>${tf("My own picture…", "Моя картина…")}</option></select><select class="input" data-k="count" style="width:auto">${[1, 2, 3, 4].map(n => `<option ${+a.count === n ? "selected" : ""}>${n}</option>`).join("")}</select></div><div></div>${tin("ct")}
+          <label class="her-own">${tf("Own picture", "Моя картина")}</label><div class="her-own"><div class="row"><button class="btn small" data-chimg>⇪ ${tf("Choose PNG or SVG…", "Избери PNG или SVG…")}</button>
+            <label class="small"><input type="checkbox" data-recolor ${a.recolor ? "checked" : ""}> ${tf("Paint it in the chosen colour", "Оцвети в избрания цвят")}</label></div>
+            <div class="faint small">${tf("Painting works best for pictures with a transparent background; unticked, your picture keeps its own colours.", "Оцветяването работи най-добре с прозрачен фон; без отметка картината пази цветовете си.")}</div></div>
+          <label>${tf("Position", "Позиция")}</label><div><div class="row"><button class="btn small ghost" data-cx>⇔ ${tf("Center horizontally", "Центрирай хоризонтално")}</button><button class="btn small ghost" data-cy>⇕ ${tf("Center vertically", "Центрирай вертикално")}</button><button class="btn small ghost" data-c0>${tf("Reset", "Нулирай")}</button></div>
+            <label class="small">${tf("Size", "Размер")} <input type="range" min="40" max="220" value="${Math.round((+a.size || 1) * 100)}" data-size style="width:160px"></label>
+            <div class="faint small">${tf("Drag the figures on the preview to move them.", "Влачете фигурите в прегледа, за да ги местите.")}</div></div>
+          <label class="her-motto">${tf("Motto", "Девиз")}</label><input class="input her-motto" data-k="motto" value="${esc(a.motto)}" placeholder="${tf("optional", "по избор")}">
         </div></div>
         <div class="faint small" style="margin-top:8px">${tf("Old heralds kept metals (gold, silver) off metals and colours off colours so arms read from far away. 🎲 follows that rule; you don't have to.", "Старите хералдици не слагат метал върху метал и цвят върху цвят, за да се вижда отдалеч. 🎲 следва правилото; вие не сте длъжни.")}</div>`,
       { wide: true, buttons: [{ label: t("Cancel"), value: null }, ...(start ? [{ label: tf("Remove", "Премахни"), value: "remove" }] : []), { label: t("Save"), cls: "primary", value: "save" }],
@@ -152,11 +172,31 @@ const HER = {
             $$("[data-k]", ov).forEach(i => { if (i.value !== String(a[i.dataset.k])) i.value = a[i.dataset.k]; });
             $("[data-t=t2]", ov).style.display = a.division === "plain" ? "none" : "";
             $("[data-t=ot]", ov).style.display = a.ordinary === "none" ? "none" : "";
-            $("[data-t=ct]", ov).style.display = a.charge === "none" ? "none" : "";
+            $("[data-t=ct]", ov).style.display = a.charge === "none" || (a.charge === "img" && !a.recolor) ? "none" : "";
+            $$(".her-own", ov).forEach(x => x.style.display = a.charge === "img" ? "" : "none");
+            $$(".her-form > :not(.her-motto)", ov).forEach(x => x.classList.toggle("dim", !!a.full));
+            $("[data-full]", ov).innerHTML = `▣ ${a.full ? tf("Design it instead", "Създай го тук") : tf("Use a picture of the whole arms…", "Цял герб от картина…")}`;
+            $("[data-size]", ov).value = Math.round((+a.size || 1) * 100);
+            // drag the figures
+            const svg = $("[data-prev] svg", ov), g = svg?.querySelector("[data-charges]");
+            if (g) { svg.style.cursor = "grab"; svg.onpointerdown = ev => { ev.preventDefault(); const k = 200 / svg.getBoundingClientRect().width, sx = ev.clientX, sy = ev.clientY, ox = +a.dx || 0, oy = +a.dy || 0;
+              const mv = e2 => { a.dx = Math.round(ox + (e2.clientX - sx) * k); a.dy = Math.round(oy + (e2.clientY - sy) * k); g.setAttribute("transform", g.getAttribute("transform").replace(/^translate\([^)]*\)/, `translate(${HER.centerOf(a)[0] + a.dx},${HER.centerOf(a)[1] + a.dy})`)); };
+              const up = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); draw(); };
+              window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up); }; }
           };
-          $$("[data-k]", ov).forEach(i => i.oninput = () => { a[i.dataset.k] = i.dataset.k === "count" ? +i.value : i.value; draw(); });
+          const pickFile = () => new Promise(res => { const i = document.createElement("input"); i.type = "file"; i.accept = ".png,.svg,image/png,image/svg+xml"; i.onchange = async () => res(i.files[0] ? (await Entry.upload([i.files[0]]))[0] : null); i.click(); });
+          $("[data-chimg]", ov).onclick = async () => { const f = await pickFile(); if (f) { a.chargeImg = f; a.charge = "img"; draw(); } };
+          $("[data-recolor]", ov).onchange = e => { a.recolor = e.target.checked; draw(); };
+          $("[data-cx]", ov).onclick = () => { a.dx = 100 - HER.centerOf(a)[0]; draw(); };
+          $("[data-cy]", ov).onclick = () => { a.dy = 118 - HER.centerOf(a)[1]; draw(); };
+          $("[data-c0]", ov).onclick = () => { a.dx = 0; a.dy = 0; a.size = 1; draw(); };
+          $("[data-size]", ov).oninput = e => { a.size = +e.target.value / 100; draw(); };
+          $("[data-full]", ov).onclick = async () => { if (a.full) { a.full = ""; draw(); return; } const f = await pickFile(); if (f) { a.full = f; draw(); } };
+          $$("[data-k]", ov).forEach(i => i.oninput = async () => { a[i.dataset.k] = i.dataset.k === "count" ? +i.value : i.value;
+            if (i.dataset.k === "charge" && i.value === "img" && !a.chargeImg) { const f = await pickFile(); if (f) a.chargeImg = f; else a.charge = "star"; }
+            draw(); });
           $$("[data-t]", ov).forEach(g => g.onclick = ev => { const s = ev.target.closest(".her-tin"); if (s) { a[g.dataset.t] = s.dataset.v; draw(); } });
-          $("[data-rand]", ov).onclick = () => { a = { ...HER.random(), motto: a.motto, shield: a.shield }; draw(); };
+          $("[data-rand]", ov).onclick = () => { a = { ...HER.defaults(), ...HER.random(), motto: a.motto, shield: a.shield, chargeImg: a.chargeImg, recolor: a.recolor }; draw(); };
           draw();
         } });
     if (res === "remove") return "remove";
@@ -171,7 +211,12 @@ const HER = {
   // a PNG of the arms, added to the entry's images (so it shows in the gallery, exports and the World Bible)
   async toImage(id) {
     const e = M.entries.get(id); if (!e?.arms) return;
-    const svg = HER.svg(e.arms, 600), blob = new Blob([svg], { type: "image/svg+xml" }), url = URL.createObjectURL(blob);
+    let svg = HER.svg(e.arms, 600);
+    for (const m of [...new Set(svg.match(/href="([^"#][^"]*)"/g) || [])]) {
+      const u = m.slice(6, -1), b = await fetch(u).then(r => r.blob()), d = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+      svg = svg.split(`href="${u}"`).join(`href="${d}"`);
+    }
+    const blob = new Blob([svg], { type: "image/svg+xml" }), url = URL.createObjectURL(blob);
     const im = new Image(); await new Promise((ok, no) => { im.onload = ok; im.onerror = no; im.src = url; });
     const c = document.createElement("canvas"); c.width = im.width; c.height = im.height; c.getContext("2d").drawImage(im, 0, 0); URL.revokeObjectURL(url);
     const png = await new Promise(r => c.toBlob(r, "image/png"));

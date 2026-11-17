@@ -375,11 +375,15 @@ function toast(text, kind = "") {
 }
 function modal(title, html, { wide = false, buttons = [], onOpen } = {}) {
   return new Promise(res => {
-    const ov = $("#overlay");
+    // a dialog opened from inside another one sits on top of it, and the one below comes back when it closes
+    const base = $("#overlay"), stacked = !!base.innerHTML.trim();
+    const ov = stacked ? Object.assign(document.createElement("div"), { className: "overlay-stack" }) : base;
+    if (stacked) document.body.append(ov);
+    modal.stack = [...(modal.stack || []), ov];
     ov.innerHTML = `<div class="backdrop"><div class="modal ${wide ? "wide" : ""}">${title ? `<div class="mh">${esc(title)}</div>` : ""}
       <div class="mb">${html}</div>${buttons.length ? `<div class="mf">${buttons.map((b, i) => `<button class="btn ${b.cls || ""}" data-i="${i}">${esc(b.label)}</button>`).join("")}</div>` : ""}</div></div>`;
-    const close = v => { ov.innerHTML = ""; document.removeEventListener("keydown", key); res(v); };
-    const key = ev => { if (ev.key === "Escape") close(null); };
+    const close = v => { ov.innerHTML = ""; if (stacked) ov.remove(); modal.stack = modal.stack.filter(x => x !== ov); document.removeEventListener("keydown", key); res(v); };
+    const key = ev => { if (ev.key === "Escape" && modal.stack[modal.stack.length - 1] === ov) { ev.stopImmediatePropagation(); close(null); } };
     document.addEventListener("keydown", key);
     $(".backdrop", ov).addEventListener("mousedown", ev => { if (ev.target.classList.contains("backdrop")) close(null); });
     $$(".mf .btn", ov).forEach(b => b.onclick = () => { const btn = buttons[+b.dataset.i]; close(btn.value !== undefined ? (typeof btn.value === "function" ? btn.value(ov) : btn.value) : b.dataset.i); });

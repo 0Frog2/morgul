@@ -1,6 +1,19 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.7.0", items: [
+    "<b>Hover explanations everywhere.</b> Rest the mouse on a button, icon, sidebar item, badge or field name and a small box says what it does. Settings → Hover explanations makes them slower or turns them off.",
+    "<b>✦ Tidy up</b> for rambling: click into a big text box and press it. The AI helper makes paragraphs, headings and lists and fixes spelling, without adding or removing anything. You compare both versions side by side, Morgul flags any <b>name, number, date or link that went missing</b>, and nothing changes until you accept. Your earlier text stays in the entry's history.",
+    "<b>Coat of arms with your own pictures:</b> use a PNG or SVG as the figure (painted in the chosen colour, or in its own colours), or a picture of a <b>whole</b> coat of arms you already have.",
+    "<b>Move the figures</b> on the shield by dragging them, with <b>Center horizontally</b>, <b>Center vertically</b>, a size slider and Reset.",
+    "A dialog opened from inside another one (like Tidy up while answering a question) now sits on top of it, instead of closing it.",
+  ], bg: [
+    "<b>Обяснения при посочване навсякъде.</b> Задръжте мишката върху бутон, икона, елемент от лентата или поле и малко поле казва какво прави. Настройки → Обяснения при посочване ги забавя или изключва.",
+    "<b>✦ Подреди</b> за текст на един дъх: AI помощникът прави абзаци, заглавия и списъци и поправя правописа, без да добавя или маха. Сравнявате двата текста, Morgul отбелязва <b>липсващи имена, числа, дати или връзки</b> и нищо не се променя без вас. Предишният текст остава в историята.",
+    "<b>Герб с ваши картини:</b> PNG или SVG като фигура (в избрания цвят или в своите цветове) или картина на <b>цял</b> готов герб.",
+    "<b>Местене на фигурите</b> с влачене, с <b>Центрирай хоризонтално</b>, <b>Центрирай вертикално</b>, размер и Нулирай.",
+    "Прозорец, отворен от друг прозорец (напр. Подреди при отговор на въпрос), вече стои над него, вместо да го затваря.",
+  ] },
   { v: "1.6.1", items: [
     "<b>Name generator: Slavic and Old Bulgarian names.</b> Built-in styles for Slavic / Old Bulgarian men's and women's names, Old Bulgar (khans') names, family names (-ov/-ova, -ski/-ska…), full names and places (-grad, -ovo, -ets…), in <b>Latin or Cyrillic</b> letters.",
     "Choice fields now show proper words in your language — <b>Open</b> / <b>Отворена</b>, <b>Alive</b> / <b>Жив</b>, <b>Village</b> / <b>Село</b> — instead of the stored lowercase word, on entry pages, in the edit lists and on chapter and scene cards. Nothing in your entries changes.",

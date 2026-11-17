@@ -194,7 +194,7 @@ const Entry = (() => {
         <div class="entry-layout editing">
           <div>
             <div class="picker" style="position:relative">
-              <textarea class="editor" data-k="body" spellcheck="true" placeholder="${tf("Write freely. Type [[ to link to another entry. Wrap author-only parts in :::secret … :::", "Пишете свободно. Напишете [[ за връзка към друг запис. Тайни части: :::secret … :::")}">${esc(draft.body || "")}</textarea>
+              <textarea class="editor" data-k="body" data-entry="${esc(draft.id)}" spellcheck="true" placeholder="${tf("Write freely. Type [[ to link to another entry. Wrap author-only parts in :::secret … :::", "Пишете свободно. Напишете [[ за връзка към друг запис. Тайни части: :::secret … :::")}">${esc(draft.body || "")}</textarea>
             </div>
             <div class="faint small" style="margin:6px 2px 0">${tf("Formatting: # Heading · **bold** · *italic* · - list · > quote · [[Link]] · [[Link|shown text]]", "Форматиране: # Заглавие · **удебелено** · *курсив* · - списък · > цитат · [[Връзка]]")}</div>
             <div class="section-title">🔒 ${t("Author-only notes")}</div>
