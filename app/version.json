@@ -1,10 +1,9 @@
 {
-  "version": "1.6.0",
+  "version": "1.6.1",
   "date": "2026-11-17",
   "repo": "0Frog2/morgul",
   "notes": [
-    "Shorter sidebar with pinned tools and All tools",
-    "Trace a map you have",
-    "Reference picture and paint land/sea brushes"
+    "Slavic and Old Bulgarian names in the name generator, Latin or Cyrillic",
+    "Choice fields show proper labels in English and Bulgarian"
   ]
 }

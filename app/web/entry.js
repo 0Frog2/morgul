@@ -15,6 +15,7 @@ const Entry = (() => {
       case "steps": return `<ol class="small" style="margin:0;padding-left:18px">${v.split("\n").filter(Boolean).map(x => `<li>${MD.inline(x, {})}</li>`).join("")}</ol>`;
       case "relations": return v.map(r => `<div class="small">${esc(r.kind)} · ${chipFor(r.to, { missing: "?" })}</div>`).join("");
       case "knowers": return v.map(r => `<div class="small">${chipFor(r.who, { missing: "?" })}${r.since ? ` <span class="faint">${tf("since", "от")}</span> ${chipFor(r.since)}` : ""}</div>`).join("");
+      case "select": return esc(optLabel(v));
       default: return MD.inline(String(v), {});
     }
   }
@@ -82,7 +83,7 @@ const Entry = (() => {
           ${(e.tags || []).map(x => `<span class="chip" data-tag="${esc(x)}">#${esc(x)}</span>`).join("")}
           <span class="spacer"></span>
           <button class="chip" data-a="pin">${pinned ? "★ " + t("Unpin") : "☆ " + t("Pin")}</button>
-          <span class="faint">${words(e.body)} ${t("words")} · ${t("Updated")} ${esc((e.updated || "").replace("T", " ").slice(0, 16))}</span>
+          <span class="faint">${words(e.body)} ${t("words")} · ${t("Updated")} ${esc(niceStamp(e.updated))}</span>
         </div>
         <div class="entry-layout">
           <div>
@@ -258,7 +259,7 @@ const Entry = (() => {
       long: () => { box.innerHTML = `<textarea class="input" rows="3">${esc(value || "")}</textarea>`; $("textarea", box).oninput = ev => set(ev.target.value); linkAutocomplete($("textarea", box)); },
       list: () => { box.innerHTML = `<textarea class="input" rows="4" placeholder="${tf("one per line", "по един на ред")}">${esc(value || "")}</textarea>`; $("textarea", box).oninput = ev => set(ev.target.value); },
       steps: () => { box.innerHTML = `<textarea class="input" rows="5" placeholder="${tf("one step per line", "по една стъпка на ред")}">${esc(value || "")}</textarea>`; $("textarea", box).oninput = ev => set(ev.target.value); },
-      select: () => { box.innerHTML = `<select class="input"><option value=""></option>${fd.options.map(o => `<option ${o === value ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`; $("select", box).onchange = ev => set(ev.target.value); },
+      select: () => { box.innerHTML = `<select class="input"><option value=""></option>${fd.options.map(o => `<option value="${esc(o)}" ${o === value ? "selected" : ""}>${esc(optLabel(o))}</option>`).join("")}</select>`; $("select", box).onchange = ev => set(ev.target.value); },
       date: () => {
         box.innerHTML = `<input class="input" value="${esc(Cal.input(value))}" placeholder="${tf("e.g. 512 AF or 14.3.512 AF", "напр. 512 AF или 14.3.512 AF")}"><div class="faint small" style="margin-top:2px"></div>`;
         const i = $("input", box), hint = $("div", box);

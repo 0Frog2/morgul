@@ -1,6 +1,15 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.6.1", items: [
+    "<b>Name generator: Slavic and Old Bulgarian names.</b> Built-in styles for Slavic / Old Bulgarian men's and women's names, Old Bulgar (khans') names, family names (-ov/-ova, -ski/-ska…), full names and places (-grad, -ovo, -ets…), in <b>Latin or Cyrillic</b> letters.",
+    "Choice fields now show proper words in your language — <b>Open</b> / <b>Отворена</b>, <b>Alive</b> / <b>Жив</b>, <b>Village</b> / <b>Село</b> — instead of the stored lowercase word, on entry pages, in the edit lists and on chapter and scene cards. Nothing in your entries changes.",
+    "“Updated” on entry pages reads as a normal date (17 Nov 2026, 15:28).",
+  ], bg: [
+    "<b>Генератор на имена: славянски и старобългарски имена.</b> Вградени стилове за мъжки и женски имена, прабългарски имена на ханове, фамилии (-ов/-ова, -ски/-ска…), пълни имена и места (-град, -ово, -ец…), на <b>латиница или кирилица</b>.",
+    "Полетата с избор вече показват истински думи на вашия език — <b>Отворена</b>, <b>Жив</b>, <b>Село</b> — вместо записаната дума с малка буква. Записите не се променят.",
+    "„Обновено“ на страницата на записа е нормална дата.",
+  ] },
   { v: "1.6.0", items: [
     "<b>A shorter sidebar.</b> It now holds your daily places, the types you actually use, and only the tools you <b>pin</b>. <b>⋯ All tools</b> shows everything in groups; ☆ pins a tool to the sidebar. Click World or Tools to fold a section. Quick note, AI, Help and Settings sit in one row at the bottom, and contradictions show as a ⚖ number on I'm stuck.",
     "<b>Trace a map you have</b> (map maker, or ⇪ on a map's page): Morgul reads sea, land, forests and mountains from your picture's colours and ignores outlines and writing. Correct it by clicking colours in your picture; it becomes an editable map. Pins and routes on that map move with it.",

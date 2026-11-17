@@ -194,7 +194,7 @@ Views.story = (el, r, pane) => {
     <div class="pane-body"><div class="wrap">
       ${chapters.length ? chapters.map(ch => { const a = appear(ch); return `<div class="card" style="margin-bottom:10px">
         <div class="row"><b style="font:600 16px var(--serif);cursor:pointer" data-open="${ch.id}">${ch.fields?.order != null ? ch.fields.order + ". " : ""}${esc(ch.title)}</b>
-        <span class="status ${ch.fields?.progress === "done" ? "canon" : "draft"}">${esc(ch.fields?.progress || "idea")}</span><span class="spacer"></span>
+        <span class="status ${ch.fields?.progress === "done" ? "canon" : "draft"}">${esc(optLabel(ch.fields?.progress || "idea"))}</span><span class="spacer"></span>
         <span class="faint small">${words(ch.body)} ${t("words")}</span><button class="btn small ghost" data-write="${ch.id}">✎ ${t("Writing mode")}</button></div>
         ${ch.fields?.summary ? `<div class="muted small" style="margin-top:4px">${esc(ch.fields.summary)}</div>` : ""}
         <div class="row small" style="margin-top:6px">${a.chars.map(x => chipFor(x.id)).join("")}${a.places.map(x => chipFor(x.id)).join("")}${!a.chars.length && !a.places.length ? `<span class="faint">${tf("No characters or places linked yet", "Още няма свързани персонажи или места")}</span>` : ""}</div></div>`; }).join("")
@@ -221,7 +221,7 @@ Views.alchemy = (el, r, pane) => {
     $("[data-ings]", el).innerHTML = `<div class="list">${ings.map(i => { const n = [...pots, ...rits].filter(p => uses(p, i.id)).length;
       return `<div class="li" data-sel="${i.id}" style="${sel === i.id ? "background:var(--accent-soft)" : ""}"><div class="main"><div class="t">${esc(i.title)}</div></div><span class="faint small">${n}</span></div>`; }).join("") || `<div class="empty">—</div>`}</div>
       ${sel ? `<button class="btn small ghost" data-clear style="margin-top:6px">${tf("Show all", "Покажи всички")}</button>` : ""}`;
-    const block = p => `<div class="card" style="margin-bottom:8px;cursor:pointer" data-open="${p.id}"><div class="row"><b>${esc(p.title)}</b>${p.fields?.risk ? `<span class="status ${p.fields.risk === "minor" ? "canon" : "draft"}">${esc(p.fields.risk)}</span>` : ""}</div>
+    const block = p => `<div class="card" style="margin-bottom:8px;cursor:pointer" data-open="${p.id}"><div class="row"><b>${esc(p.title)}</b>${p.fields?.risk ? `<span class="status ${p.fields.risk === "minor" ? "canon" : "draft"}">${esc(optLabel(p.fields.risk))}</span>` : ""}</div>
       <div class="row small" style="margin-top:4px">${[...(p.fields?.ingredients || []), ...(p.fields?.components || [])].map(id => chipFor(id)).join("") || `<span class="faint">${tf("no ingredients yet", "още няма съставки")}</span>`}</div>
       <div class="faint small" style="margin-top:4px">${esc(summary({ body: p.fields?.effects || p.fields?.consequences || p.body }, 140))}</div></div>`;
     $("[data-pots]", el).innerHTML = pots.filter(p => !sel || uses(p, sel)).map(block).join("") || `<div class="empty">—</div>`;
@@ -299,21 +299,62 @@ const Names = {
     return [...out];
   },
 };
+// Built-in name styles. Samples are historical Slavic and Old Bulgarian names; the generator makes new ones that sound alike.
+const NAME_STYLES = {
+  "sl-m": ["Slavic / Old Bulgarian — men", "Славянски / старобългарски — мъжки", "Boris, Simeon, Petar, Samuil, Gavril, Radomir, Ivan, Asen, Kaloyan, Boril, Smilets, Svetoslav, Shishman, Sratsimir, Dobromir, Radoslav, Borislav, Vladislav, Stoyan, Bogomil, Dragomir, Velislav, Momchil, Rayko, Tihomir, Yaroslav, Mstislav, Rostislav, Vsevolod, Lyuboslav, Miroslav, Desislav, Gorazd, Kliment, Naum, Presian, Malamir, Zhelyo, Dobri, Milko, Vlad, Bozhidar, Dragan, Lyuben, Ognyan, Krasimir, Zvezdomir, Velichko, Tsvetan, Zhivko"],
+  "sl-f": ["Slavic / Old Bulgarian — women", "Славянски / старобългарски — женски", "Elena, Irina, Mara, Desislava, Kerka, Dragana, Radka, Stoyanka, Bozhana, Zlatka, Milena, Vladislava, Lyudmila, Dobromira, Svetlana, Bogdana, Yana, Zhivka, Rada, Neda, Vela, Velika, Yarmila, Zorka, Snezhana, Mladena, Grozda, Tsveta, Kalina, Boyana, Dragomira, Radoslava, Lyubava, Mila, Stana, Vesela, Dobrava, Ognyana, Rusana, Zvezdelina, Lada, Vida, Militsa, Zhelyazka, Bisera"],
+  "bulgar": ["Old Bulgar (khans' names)", "Прабългарски (имена на ханове)", "Kubrat, Asparuh, Tervel, Kormisosh, Vinekh, Telets, Sabin, Umor, Toktu, Pagan, Telerig, Kardam, Krum, Omurtag, Malamir, Persian, Organa, Kotrag, Kuber, Batbayan, Altsek, Gostun, Bezmer, Avitohol, Irnik, Isbul, Tsok, Ishbara, Kavkhan, Sevar, Bayan, Ochir, Enravota, Zvinitsa, Kartal"],
+  "sl-family": ["Slavic family names", "Славянски фамилии", ""],
+  "sl-full": ["Slavic full names", "Славянски пълни имена", ""],
+  "sl-place": ["Slavic / Old Bulgarian places", "Славянски / старобългарски места", "Pliska, Preslav, Ohrid, Tarnovo, Vidin, Drastar, Serdika, Melnik, Lovech, Cherven, Kaliakra, Belograd, Vratsa, Smolyan, Bdin, Prilep, Devol, Moglena, Mesemvria, Anhialo, Boruy, Provadia, Madara, Shumen, Vodena, Strumitsa, Skopie, Velbazhd, Zemen, Rila, Pernik, Sredets, Kostur, Lyutitsa, Ostrovo, Glavinitsa, Dristra, Tsepina, Mezek, Krichim"],
+};
+const CYR = [["sht", "щ"], ["zh", "ж"], ["ch", "ч"], ["sh", "ш"], ["ts", "ц"], ["yu", "ю"], ["ya", "я"], ["yo", "йо"], ["a", "а"], ["b", "б"], ["v", "в"], ["g", "г"], ["d", "д"], ["e", "е"], ["z", "з"], ["i", "и"], ["y", "й"], ["k", "к"], ["l", "л"], ["m", "м"], ["n", "н"], ["o", "о"], ["p", "п"], ["r", "р"], ["s", "с"], ["t", "т"], ["u", "у"], ["f", "ф"], ["h", "х"], ["c", "ц"], ["w", "в"], ["x", "кс"], ["q", "к"], ["j", "дж"]];
+function toCyrillic(name) {
+  let out = "", s = name.toLowerCase()
+    .replace(/([^aeiouy])yo/g, "$1ьo")                       // Velyo → Вельо
+    .replace(/([^aeiouy])y(?=[^aeiouy]|$)/g, "$1i");          // a stray y between consonants reads as и
+  for (let i = 0; i < s.length;) { const m = CYR.find(([l]) => s.startsWith(l, i)); if (m) { out += m[1]; i += m[0].length; } else { out += s[i]; i++; } }
+  return out ? out[0].toUpperCase() + out.slice(1) : out;
+}
+Names.style = (key, n = 16) => {
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const list = k => NAME_STYLES[k][2].split(/,\s*/);
+  // good shapes only: long enough, women's names end in -a/-ya, men's don't, no clusters of three consonants at the end
+  const ok = k => w => w.length >= 4 && w.length <= 11 && /[aeiou]/i.test(w) && !/[^aeiouy]{3}$/i.test(w)
+    && (k === "sl-f" ? /a$/.test(w) : k === "sl-m" ? !/a$/.test(w) : true);
+  const gen = (k, m) => { const g = Names.markov(list(k), m * 4).filter(ok(k)).slice(0, m); return g.length ? g : list(k).slice(0, m); };
+  const family = (fem) => { const base = pick(gen("sl-m", 6)).replace(/[aeiouy]$/, ""); const suf = pick(fem ? ["ova", "eva", "ska", "ina"] : ["ov", "ev", "ski", "in"]);
+    return base + (/[aeiou]$/.test(base) && suf[0] === "e" ? suf.slice(1) : base.endsWith("k") && suf === "ski" ? "i" : suf); };
+  if (key === "sl-family") return Array.from({ length: n }, (_, i) => family(i % 2 === 1));
+  if (key === "sl-full") return Array.from({ length: n }, (_, i) => { const fem = i % 2 === 1; return `${pick(gen(fem ? "sl-f" : "sl-m", 8))} ${family(fem)}`; });
+  if (key === "sl-place") { const roots = gen("sl-place", n); const sufs = ["grad", "ovo", "evo", "ets", "ishte", "nik", "ina", "sko", "bor", "dol", "ovets", "itsa"];
+    return roots.map((r, i) => i % 3 === 2 ? r.replace(/[aeiouy]$/, "") + pick(sufs) : r).map(x => x[0].toUpperCase() + x.slice(1)); }
+  return gen(key, n);
+};
 Views.names = (el, r, pane) => {
   const langs = sortByTitle(entriesOf("language"));
   el.innerHTML = paneHead(t("Name generator"), "", pane) + `<div class="pane-body"><div class="wrap">
     <div class="card"><div class="form-grid">
-      <label>${tf("Culture / language", "Култура / език")}</label><select class="input" data-l><option value="">${tf("— use the box below —", "— използвай полето отдолу —")}</option>${langs.map(l => `<option value="${l.id}">${esc(l.title)}</option>`).join("")}</select>
+      <label>${tf("Culture / language", "Култура / език")}</label><select class="input" data-l><option value="">${tf("— use the box below —", "— използвай полето отдолу —")}</option>
+        <optgroup label="${tf("Built in", "Вградени")}">${Object.entries(NAME_STYLES).map(([k, v]) => `<option value="bi:${k}">${esc(tf(v[0], v[1]))}</option>`).join("")}</optgroup>
+        ${langs.length ? `<optgroup label="${tf("Your languages", "Вашите езици")}">${langs.map(l => `<option value="${l.id}">${esc(l.title)}</option>`).join("")}</optgroup>` : ""}</select>
+      <label>${tf("Letters", "Букви")}</label><select class="input" data-script style="width:auto"><option value="lat">${tf("Latin (Dragomir)", "Латиница (Dragomir)")}</option><option value="cyr" ${(M.state.nameScript || (M.settings.language === "bg" ? "cyr" : "lat")) === "cyr" ? "selected" : ""}>${tf("Cyrillic (Драгомир)", "Кирилица (Драгомир)")}</option></select>
       <label>${tf("Sample names", "Примерни имена")}</label><textarea class="input" data-s rows="3" placeholder="${tf("A few names that sound right, comma or line separated (best results)", "Няколко имена, които звучат правилно, със запетая или на ред")}"></textarea>
       <label>${tf("…or syllables", "…или срички")}</label><input class="input" data-y placeholder="mor, vel, dra, ka, -ov, -ina">
     </div><div class="row" style="margin-top:10px"><span class="spacer"></span><button class="btn primary" data-g>${t("Generate")}</button></div></div>
     <div data-out style="margin-top:14px"></div>
     <div class="faint small" style="margin-top:10px">${tf("Works offline. Save sample names and syllables on a Language entry to reuse them. Click a name to create a character with it.", "Работи без интернет. Запазете примерните имена и срички в запис Език. Щракнете име, за да създадете персонаж с него.")}</div></div></div>`;
-  const fill = () => { const l = M.entries.get($("[data-l]", el).value); if (!l) return; $("[data-s]", el).value = (l.fields?.sampleNames || "").replace(/\n/g, ", "); $("[data-y]", el).value = l.fields?.syllables || ""; };
+  const fill = () => { const v = $("[data-l]", el).value;
+    if (v.startsWith("bi:")) { const st = NAME_STYLES[v.slice(3)]; $("[data-s]", el).value = st[2] || ""; $("[data-y]", el).value = ""; $("[data-s]", el).placeholder = st[2] ? "" : tf("Made from the Slavic men's and women's names", "Прави се от славянските мъжки и женски имена"); return; }
+    const l = M.entries.get(v); if (!l) return; $("[data-s]", el).value = (l.fields?.sampleNames || "").replace(/\n/g, ", "); $("[data-y]", el).value = l.fields?.syllables || ""; };
   $("[data-l]", el).onchange = fill;
   $("[data-g]", el).onclick = () => {
-    const samples = $("[data-s]", el).value.split(/[,\n]/).filter(Boolean);
-    let names = Names.markov(samples, 16); if (names.length < 6) names = [...names, ...Names.syllables($("[data-y]", el).value, 16 - names.length)];
+    const samples = $("[data-s]", el).value.split(/[,\n]/).filter(Boolean), styleKey = $("[data-l]", el).value.startsWith("bi:") ? $("[data-l]", el).value.slice(3) : "";
+    const builtin = styleKey && samples.join(",").replace(/\s/g, "") === (NAME_STYLES[styleKey][2] || "").replace(/\s/g, "");
+    let names = builtin || (styleKey && !NAME_STYLES[styleKey][2]) ? Names.style(styleKey, 16) : Names.markov(samples, 16);
+    if (names.length < 6) names = [...names, ...Names.syllables($("[data-y]", el).value, 16 - names.length)];
+    const script = $("[data-script]", el).value; M.state.nameScript = script; saveState();
+    if (script === "cyr") names = names.map(n => n.split(" ").map(toCyrillic).join(" "));
     $("[data-out]", el).innerHTML = names.length ? `<div class="row">${names.map(n => `<button class="chip" data-n="${esc(n)}" style="font-size:14px;padding:4px 12px">${esc(n)}</button>`).join("")}</div>`
       : `<div class="empty">${tf("Add at least 3 sample names or a few syllables.", "Добавете поне 3 примерни имена или няколко срички.")}</div>`;
     $$("[data-n]", el).forEach(b => b.onclick = async () => { const e = await createEntry("character", b.dataset.n); open(e.id); });

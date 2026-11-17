@@ -67,7 +67,7 @@ Views.story = (el, r, pane) => {
       <div data-body></div>
     </div></div>`;
   const body = $("[data-body]", el);
-  const sceneCard = s => `<div class="scene-card" draggable="true" data-scene="${s.id}"><div class="row"><b class="t" data-open="${s.id}">${esc(s.title)}</b><span class="spacer"></span><span class="status ${["done", "revised"].includes(s.fields?.progress) ? "canon" : "draft"}">${esc(s.fields?.progress || "idea")}</span></div>
+  const sceneCard = s => `<div class="scene-card" draggable="true" data-scene="${s.id}"><div class="row"><b class="t" data-open="${s.id}">${esc(s.title)}</b><span class="spacer"></span><span class="status ${["done", "revised"].includes(s.fields?.progress) ? "canon" : "draft"}">${esc(optLabel(s.fields?.progress || "idea"))}</span></div>
     ${s.fields?.summary ? `<div class="small muted">${esc(s.fields.summary.slice(0, 140))}</div>` : ""}
     <div class="row small faint" style="margin-top:4px">${s.fields?.pov ? `◉ ${esc(titleOf(s.fields.pov))}` : ""}${s.fields?.where ? ` ⌂ ${esc(titleOf(s.fields.where))}` : ""}${s.fields?.date ? ` ⟟ ${esc(Cal.format(s.fields.date))}` : ""}<span class="spacer"></span>${words(s.body)}${+s.fields?.wordGoal ? `/${s.fields.wordGoal}` : ""} ${t("words")}</div>
     ${MS.goalBar(words(s.body), s.fields?.wordGoal)}</div>`;
@@ -99,7 +99,7 @@ Views.story = (el, r, pane) => {
       const who = [...linked].map(id => M.entries.get(id)).filter(e => e && ["character", "location"].includes(e.type));
       return `<div class="card ms-ch"><div class="row"><span class="ms-move"><button class="btn icon ghost small" data-up="${ch.id}" ${i ? "" : "disabled"}>↑</button><button class="btn icon ghost small" data-down="${ch.id}" ${i < chapters.length - 1 ? "" : "disabled"}>↓</button></span>
           <b style="font:600 17px var(--serif);cursor:pointer" data-open="${ch.id}">${ch.fields?.order != null ? ch.fields.order + ". " : ""}${esc(ch.title)}</b>
-          <span class="status ${ch.fields?.progress === "done" ? "canon" : "draft"}">${esc(ch.fields?.progress || "idea")}</span><span class="spacer"></span>
+          <span class="status ${ch.fields?.progress === "done" ? "canon" : "draft"}">${esc(optLabel(ch.fields?.progress || "idea"))}</span><span class="spacer"></span>
           <span class="faint small">${n}${+ch.fields?.wordGoal ? ` / ${ch.fields.wordGoal}` : ""} ${t("words")}</span>
           <button class="btn small ghost" data-write="${ch.id}">✎ ${t("Writing mode")}</button><button class="btn small ghost" data-newsc="${ch.id}">＋ ${tf("Scene", "Сцена")}</button></div>
         ${MS.goalBar(n, ch.fields?.wordGoal)}

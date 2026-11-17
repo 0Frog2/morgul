@@ -314,6 +314,30 @@ function summary(e, n = 220) {
     .replace(/[#>*_`|]/g, "").replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
   return raw.length > n ? raw.slice(0, n).replace(/\s\S*$/, "") + "…" : raw;
 }
+// choice-field values are stored as plain keys ("open", "alive"); people see a proper label in their language
+const OPTION_LABELS = {
+  alive: ["Alive", "Жив"], dead: ["Dead", "Мъртъв"], unknown: ["Unknown", "Неизвестно"],
+  world: ["World", "Свят"], continent: ["Continent", "Континент"], region: ["Region", "Област"], country: ["Country", "Държава"], city: ["City", "Град"],
+  village: ["Village", "Село"], landmark: ["Landmark", "Забележителност"], building: ["Building", "Сграда"], underground: ["Underground", "Подземие"],
+  wilderness: ["Wilderness", "Пустош"], other: ["Other", "Друго"], greater: ["Greater", "Висше"], lesser: ["Lesser", "Низше"],
+  minor: ["Minor", "Малък"], major: ["Major", "Голям"], forbidden: ["Forbidden", "Забранен"],
+  monarchy: ["Monarchy", "Монархия"], empire: ["Empire", "Империя"], theocracy: ["Theocracy", "Теокрация"], republic: ["Republic", "Република"],
+  council: ["Council", "Съвет"], tribe: ["Tribe", "Племе"], occupation: ["Occupation", "Окупация"],
+  planning: ["Planning", "Планиране"], drafting: ["Drafting", "Чернова"], revising: ["Revising", "Редакция"], finished: ["Finished", "Завършена"],
+  idea: ["Idea", "Идея"], outline: ["Outline", "План"], draft: ["Draft", "Чернова"], revised: ["Revised", "Редактирана"], done: ["Done", "Готова"],
+  open: ["Open", "Отворена"], resolved: ["Resolved", "Разрешена"], dropped: ["Dropped", "Изоставена"],
+};
+function optLabel(v) {
+  const s = String(v ?? ""), l = OPTION_LABELS[s.toLowerCase()];
+  if (l) return tf(l[0], l[1]);
+  return s ? s[0].toUpperCase() + s.slice(1) : s;        // the author's own options: just a capital letter
+}
+// "2026-11-13T14:35:10" → "13 Nov 2026, 14:35" (or "13 ное 2026, 14:35")
+function niceStamp(iso) {
+  const d = new Date(iso); if (!iso || isNaN(d)) return "";
+  const loc = M.settings.language === "bg" ? "bg-BG" : "en-GB";
+  return `${d.toLocaleDateString(loc, { day: "numeric", month: "short", year: "numeric" })}, ${d.toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" })}`;
+}
 const titleOf = id => M.entries.get(id)?.title || "";
 const entriesOf = (...types) => [...M.entries.values()].filter(e => types.includes(e.type));
 const sortByTitle = a => a.sort((x, y) => x.title.localeCompare(y.title));
