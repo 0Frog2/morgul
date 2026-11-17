@@ -543,3 +543,11 @@ body.no-glow { --accent-glow: transparent; --accent-halo: transparent; }
 textarea.tidy-pane { width: 100%; resize: none; font: 14px/1.55 var(--sans); color: var(--text); }
 .warn-card { border-color: var(--warn); }
 .overlay-stack .backdrop { z-index: 85; }
+
+/* 1.7.1 resolving contradictions */
+.res-sugg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.res-opt { width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r8); padding: 8px 12px; color: var(--text); cursor: pointer; font: 13.5px/1.4 var(--sans); }
+.res-opt:hover { border-color: var(--accent); }
+.res-opt.on { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); background: var(--raised); }
+.res-opt.ai { border-style: dashed; }
+.res-note { margin: 0 0 8px; padding: 8px 10px; border-left: 3px solid var(--accent); background: var(--panel); border-radius: 0 6px 6px 0; }

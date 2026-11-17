@@ -1,6 +1,15 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.7.1", items: [
+    "<b>Resolving a contradiction asks how.</b> ✓ Resolved opens a window with both passages and <b>suggestions that fit the kind of contradiction</b> (which side is right, a wrong date, someone else with the same name, the same thing in two spellings…), plus ✦ more ideas from the AI. Your answer is kept and shown under Resolved.",
+    "From the same window: add the answer to both entries as an <b>author-only note</b>, add a <b>to-do</b> to fix the entry that was wrong, or add a name written in the other alphabet as <b>another name</b>. Morgul still never changes your text by itself.",
+    "<b>Intentional</b> works the same way and asks why it is meant to be so: a lie, different legends, a mystery for later.",
+  ], bg: [
+    "<b>Решаването на противоречие пита как.</b> ✓ Решено отваря прозорец с двата пасажа и <b>предложения според вида противоречие</b> (коя страна е вярна, грешна дата, друг със същото име, едно нещо с два правописа…) и ✦ още идеи от AI. Отговорът се пази и се вижда под Решени.",
+    "От същия прозорец: добавете отговора в двата записа като <b>бележка само за автора</b>, добавете <b>задача</b> или добавете името на другата азбука като <b>друго име</b>. Morgul не променя текста сам.",
+    "<b>Нарочно</b> работи по същия начин и пита защо: лъжа, различни легенди, загадка за по-късно.",
+  ] },
   { v: "1.7.0", items: [
     "<b>Hover explanations everywhere.</b> Rest the mouse on a button, icon, sidebar item, badge or field name and a small box says what it does. Settings → Hover explanations makes them slower or turns them off.",
     "<b>✦ Tidy up</b> for rambling: click into a big text box and press it. The AI helper makes paragraphs, headings and lists and fixes spelling, without adding or removing anything. You compare both versions side by side, Morgul flags any <b>name, number, date or link that went missing</b>, and nothing changes until you accept. Your earlier text stays in the entry's history.",

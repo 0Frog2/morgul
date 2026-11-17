@@ -32,6 +32,8 @@ const TIP_TEXT = [
   ["Present day", "Настоящ ден", "Jump to your world's present day.", "Отива на настоящия ден на света."],
   ["Date calculator", "Калкулатор за дати", "Add days, months or years to a date, or count the days between two dates, in your world's calendar.", "Добавя дни, месеци или години или брои дни между дати в календара на света."],
   ["Tidy up", "Подреди", "The AI cleans up the text: paragraphs, headings, spelling. You compare and decide; nothing changes until you accept.", "AI подрежда текста: абзаци, заглавия, правопис. Вие сравнявате и решавате; нищо не се променя без вас."],
+  ["Resolved", "Решено", "Mark it resolved: a window asks how, with suggestions, and can add a to-do or a note to both entries.", "Отбелязва като решено: прозорец пита как, с предложения, и може да добави задача или бележка."],
+  ["Intentional", "Нарочно", "It is meant to be like this (a lie, a legend, a mystery). A window asks why, with suggestions.", "Така трябва да е (лъжа, легенда, загадка). Прозорец пита защо, с предложения."],
   ["Save a milestone", "Запази етап", "Keep the whole world exactly as it is now, under a name.", "Пази целия свят точно както е сега, под име."],
   ["What changed", "Какво се промени", "New, changed and deleted entries since this milestone, with words added or cut.", "Нови, променени и изтрити записи от този етап насам."],
   ["Go back to this", "Върни се към това", "Return the whole world to this milestone. The present is saved as a milestone first.", "Връща целия свят към етапа. Настоящето първо се пази като етап."],

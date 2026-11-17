@@ -1,10 +1,8 @@
 {
-  "version": "1.7.0",
+  "version": "1.7.1",
   "date": "2026-11-17",
   "repo": "0Frog2/morgul",
   "notes": [
-    "Hover explanations everywhere",
-    "Tidy up: AI cleans up rambling, you compare and accept",
-    "Own pictures and movable figures in coats of arms"
+    "Resolving a contradiction asks how, with suggestions, notes and to-dos"
   ]
 }
