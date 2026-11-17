@@ -27,7 +27,7 @@ Views.dashboard = (el, r, pane) => {
         <div class="card" style="cursor:pointer" data-go="stuck"><div class="faint small">${t("To fill in")}</div><div style="font:600 26px var(--serif)">${Checks.fleshOut().length}</div><div class="faint small">${tf("things waiting to be fleshed out", "неща за доразвиване")}</div></div>
         <div class="card" style="cursor:pointer" data-go="contradictions"><div class="faint small">${t("Open contradictions")}</div><div style="font:600 26px var(--serif);color:${issues ? "var(--warn)" : "inherit"}">${issues}</div><div class="faint small">${inbox} ${tf("notes in the inbox", "бележки във входящи")}</div></div>
       </div>
-      <div class="grid c2" style="margin-bottom:6px">${writingCard()}<div class="card writing-card" style="cursor:pointer" data-go="build"><div><div class="faint small">${tf("World built", "Изграден свят")}</div><div style="font:600 22px var(--serif)">${Path.overall()}%</div></div><div style="flex:1">${Path.meter(Path.overall())}</div><span class="faint small">${tf("World-building path", "Пътят на света")} ›</span></div></div>
+      ${typeof onThisDayCard === "function" ? onThisDayCard() : ""}<div class="grid c2" style="margin-bottom:6px">${writingCard()}<div class="card writing-card" style="cursor:pointer" data-go="build"><div><div class="faint small">${tf("World built", "Изграден свят")}</div><div style="font:600 22px var(--serif)">${Path.overall()}%</div></div><div style="flex:1">${Path.meter(Path.overall())}</div><span class="faint small">${tf("World-building path", "Пътят на света")} ›</span></div></div>
       ${lastSessionCard()}
       <div class="grid c2">
         <div>

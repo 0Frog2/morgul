@@ -267,7 +267,7 @@ const Cal = {
     const A = Cal.parts(a), B = Cal.parts(b); if (!A || !B) return null;
     let n = B.y - A.y; if (A.m && B.m && (B.m < A.m || (B.m === A.m && A.d && B.d && B.d < A.d))) n--; return n;
   },
-  present() { return M.world.calendar.present ?? 0; },
+  present() { const c = M.world.calendar; return c.presentDate && Cal.parts(c.presentDate) ? Cal.parts(c.presentDate).y : (c.present ?? 0); },
 };
 
 // ------------------------------------------------------------------ entries & links

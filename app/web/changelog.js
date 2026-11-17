@@ -1,6 +1,21 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.3.0", items: [
+    "<b>Calendar</b> (sidebar, ☽): your world's months as a real calendar, with <b>named weekdays</b>, <b>moons and their phases</b>, <b>seasons</b>, <b>holidays</b> (Holiday entries with a day in “When”, like 14.3) and everything dated on each day. Click a day to add an event on it or make it the present day.",
+    "Set up weekdays, as many moons as you like (each with its own cycle and color) and seasons with ⚙ on the Calendar page.",
+    "<b>Date calculator</b> (Calendar, or Ctrl+K): add days, months or years to a date, or count the days between two dates, in your own calendar.",
+    "<b>On this day:</b> the Home page and each calendar day show what happened on the same day in other years.",
+    "<b>Timeline lanes:</b> view the timeline by type, faction, place or character, with <b>colored era bands</b>, <b>lifespan bars</b> for every character, a present-day line and zoom.",
+    "<b>Follow a character:</b> every dated event, scene and entry they are part of, in order, with where they were and how old they were.",
+  ], bg: [
+    "<b>Календар</b> (отстрани, ☽): месеците на света ви с <b>дни от седмицата</b>, <b>луни и фази</b>, <b>сезони</b>, <b>празници</b> и всичко датирано. Щракнете ден, за да добавите събитие или да го направите настоящ ден.",
+    "Дни от седмицата, колкото искате луни (със свой цикъл и цвят) и сезони се задават с ⚙ на страницата.",
+    "<b>Калкулатор за дати</b>: добавя дни, месеци или години или брои дните между две дати в календара на света.",
+    "<b>На този ден:</b> началната страница и всеки ден показват какво се е случило на същия ден в други години.",
+    "<b>Ленти в хрониката:</b> по вид, фракция, място или персонаж, с <b>цветни епохи</b>, <b>линии на живота</b>, линия на настоящия ден и мащаб.",
+    "<b>Следвай персонаж:</b> всяко датирано събитие, сцена и запис с него, по ред, с място и възраст.",
+  ] },
   { v: "1.2.0", items: [
     "<b>Manuscript</b> (sidebar, ¶) replaces Story: write your book inside Morgul as <b>books → chapters → scenes</b>. Each scene has its own point of view, place, in-world date, summary and word goal; chapters and books have word goals with progress bars.",
     "<b>Scene board:</b> switch to ▦ and drag scenes to reorder them or move them to another chapter. In the list, ↑↓ reorder chapters and scenes.",
