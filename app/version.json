@@ -1,13 +1,12 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "date": "2026-11-17",
   "repo": "0Frog2/morgul",
   "notes": [
-    "Updates: a banner offers “Update now”; only the app changes, never your world",
-    "Welcome tour, Help page and a small example world to explore",
-    "Bring in your notes: .md, .txt, Word (.docx), whole folders, or pasted text split by headings",
-    "Trash with restore, gallery, find & replace across the world",
-    "Several worlds, and your world can live in any folder or drive",
-    "Words written today with an optional daily goal, templates per type, and more"
+    "World-building path: 11 stages from first idea to finished world, with questions one at a time and completeness meters",
+    "New types: Culture, Religion, Deity, Species, Government, Currency, Holiday; settlements get government, cultures, economy and more",
+    "Full theme editor: every color, type colors, fonts, size, spacing, corners, glow, background image; save, export and import themes",
+    "Smart lists (saved filters in the sidebar), a To-do list, and offline random tables for NPCs, taverns, rumours, plot hooks and more",
+    "The welcome tour and Help cover all of it"
   ]
 }

@@ -128,7 +128,7 @@ const Checks = (() => {
     const imp = M.world.important || {};
     const now = Date.now();
     for (const e of M.entries.values()) {
-      if (e.status === "scrapped" || e.type === "map" || e.type === "note") continue;
+      if (e.status === "scrapped" || e.type === "map" || e.type === "note" || (e.tags || []).includes("worldbuilding")) continue;   // path notes are tracked by the path itself
       const ty = typeOf(e.type);
       const bodyWords = words(e.body);
       const filled = ty.fields.filter(x => has(f(e, x.key))).length;

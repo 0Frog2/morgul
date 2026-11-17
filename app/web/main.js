@@ -7,21 +7,24 @@ const Nav = {
     const stuck = Checks.fleshOut().length;
     const item = (view, icon, label, extra = "", id = "") => `<button class="nav-item" data-view="${view}" data-id="${esc(id)}"><i>${icon}</i><span>${esc(label)}</span>${extra}</button>`;
     const counts = M.world.types.filter(x => x.key !== "note" && x.key !== "map");
-    $("#nav").innerHTML = item("dashboard", "⌂", t("Dashboard")) + item("stuck", "✦", t("I'm stuck"), stuck ? `<span class="count">${stuck}</span>` : "")
+    const todos = Todos.open().length, smart = Smart.list();
+    $("#nav").innerHTML = item("dashboard", "⌂", t("Dashboard")) + item("build", "☾", tf("World-building path", "Пътят на света"), `<span class="count">${Path.overall()}%</span>`)
+      + item("stuck", "✦", t("I'm stuck"), stuck ? `<span class="count">${stuck}</span>` : "") + item("todo", "☐", tf("To-do", "Задачи"), todos ? `<span class="count">${todos}</span>` : "")
       + item("inbox", "✉", t("Inbox"), inbox ? `<span class="count">${inbox}</span>` : "") + item("contradictions", "⚖", t("Contradictions"), n ? `<span class="badge">${n}</span>` : "")
       + `<div class="nav-group">${t("World")}</div>` + item("browse", "☰", t("Everything"), `<span class="count">${M.entries.size}</span>`)
       + counts.map(ty => { const c = entriesOf(ty.key).length; return c || ["character", "location", "event", "faction"].includes(ty.key) ? item("browse", ty.icon, typeName(ty.key), `<span class="count">${c || ""}</span>`, ty.key) : ""; }).join("")
+      + (smart.length ? `<div class="nav-group">${tf("Smart lists", "Умни списъци")}</div>` + smart.map(x => item("smart", "☆", x.name, `<span class="count">${[...M.entries.values()].filter(e => Smart.match(e, x)).length}</span>`, x.id)).join("") : "")
       + `<div class="nav-group">${t("Tools")}</div>` + item("timeline", "⟟", t("Timeline")) + item("story", "¶", t("Story")) + item("maps", "⌖", t("Maps"))
       + item("alchemy", "⚗", t("Alchemy & rituals")) + item("relations", "☍", t("Relationships")) + item("family", "⚭", t("Family trees"))
       + item("worldat", "⧗", t("World at a time")) + item("glossary", "Aa", t("Glossary & languages")) + item("names", "✍", t("Name generator"))
-      + item("gallery", "▦", tf("Gallery", "Галерия")) + item("replace", "⇄", tf("Find & replace", "Търсене и замяна")) + item("trash", "🗑", tf("Trash", "Кошче"))
+      + item("tables", "⚄", tf("Random tables", "Случайни таблици")) + item("gallery", "▦", tf("Gallery", "Галерия")) + item("replace", "⇄", tf("Find & replace", "Търсене и замяна")) + item("trash", "🗑", tf("Trash", "Кошче"))
       + `<button class="nav-item" data-export><i>⇪</i><span>${esc(t("Export"))}</span></button>`;
-    $$("#nav [data-view]").forEach(b => b.onclick = ev => Panes.show({ view: b.dataset.view, type: b.dataset.id || undefined, id: undefined }, ev.shiftKey ? 1 : 0));
+    $$("#nav [data-view]").forEach(b => b.onclick = ev => Panes.show(b.dataset.view === "smart" ? { view: "smart", id: b.dataset.id } : { view: b.dataset.view, type: b.dataset.id || undefined, id: undefined }, ev.shiftKey ? 1 : 0));
     $("#nav [data-export]").onclick = () => Exporter.dialog();
     $$("[data-t]").forEach(x => x.textContent = t(x.dataset.t));
     Nav.mark(Panes.cur[0] || { view: "dashboard" });
   },
-  mark(r) { $$("#nav [data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === r.view && (r.view !== "browse" || (b.dataset.id || "") === (r.type || "")))); },
+  mark(r) { $$("#nav [data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === r.view && (r.view === "browse" ? (b.dataset.id || "") === (r.type || "") : r.view === "smart" ? b.dataset.id === r.id : true))); },
 };
 
 // ---------------- search palette (Ctrl+K)
@@ -30,7 +33,8 @@ function palette() {
     [t("New entry"), () => newEntryBox()], [t("Quick note"), () => Capture.open()], [t("I'm stuck"), () => Panes.show({ view: "stuck" })],
     [t("Timeline"), () => Panes.show({ view: "timeline" })], [t("Maps"), () => Panes.show({ view: "maps" })], [t("Relationships"), () => Panes.show({ view: "relations" })],
     [t("Contradictions"), () => Panes.show({ view: "contradictions" })], [t("Settings"), () => Panes.show({ view: "settings" })], [t("Export"), () => Exporter.dialog()],
-    [tf("Help", "Помощ"), () => Panes.show({ view: "help" })], [tf("Import notes", "Внеси бележки"), () => Importer.open()], [tf("Find & replace", "Търсене и замяна"), () => Panes.show({ view: "replace" })],
+    [tf("Help", "Помощ"), () => Panes.show({ view: "help" })], [tf("World-building path", "Пътят на света"), () => Panes.show({ view: "build" })],
+    [tf("To-do", "Задачи"), () => Panes.show({ view: "todo" })], [tf("New to-do", "Нова задача"), () => Todos.add()], [tf("Random tables", "Случайни таблици"), () => Panes.show({ view: "tables" })], [tf("Import notes", "Внеси бележки"), () => Importer.open()], [tf("Find & replace", "Търсене и замяна"), () => Panes.show({ view: "replace" })],
     [tf("Gallery", "Галерия"), () => Panes.show({ view: "gallery" })], [tf("Trash", "Кошче"), () => Panes.show({ view: "trash" })], [tf("Check for updates", "Провери за обновления"), () => Updates.check(true, false)],
     [tf("Welcome tour", "Обиколка"), () => startTour()], [tf("Copy problem report", "Копирай отчет за проблем"), () => copyReport()],
   ];

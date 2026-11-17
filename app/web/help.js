@@ -64,12 +64,12 @@ const WhatsNew = {
     const list = APP_CHANGELOG.filter(c => since ? vn(c.v) > vn(since) : c.v === M.version.version).slice(0, 4);
     if (!list.length) return;
     modal(tf("What's new in Morgul", "Какво ново в Morgul"), list.map((c, i) => `<div style="margin-bottom:14px"><div class="${i ? "muted" : "acc"} small">${tf("Version", "Версия")} ${esc(c.v)}</div>
-      <ul class="tour-list">${(M.settings.language === "bg" && c.bg ? c.bg : c.items).map(x => `<li>${x}</li>`).join("")}</ul></div>`).join(""), { wide: true, buttons: [{ label: tf("Got it", "Ясно"), cls: "primary", value: true }] });
+      <ul class="tour-list">${(M.settings.language === "bg" && c.bg ? c.bg : c.items).map(x => `<li>${x}</li>`).join("")}</ul></div>`).join(""), { wide: true, buttons: [{ label: tf("Show the tour", "Покажи обиколката"), value: "tour" }, { label: tf("Got it", "Ясно"), cls: "primary", value: true }] }).then(v => { if (v === "tour") startTour(); });
   },
 };
 
 // ------------------------------------------------------------------ welcome tour
-const TOUR_VERSION = 1;
+const TOUR_VERSION = 2;    // raise when the tour gains steps; anyone who saw an older tour gets the new one once
 function startTour(after) {
   const S = [
     [tf("Welcome to Morgul", "Добре дошли в Morgul"), "☾", tf(`<p>Morgul keeps your whole world in one place: characters, places, events, magic, maps, timelines and your story.</p>
@@ -94,6 +94,16 @@ function startTour(after) {
       <p><b>Contradictions</b> are checked every time you save: dates that don't fit, events after a death, and more. <b>You decide</b> what's canon.</p>
       <p>The optional <b>AI helper</b> (<kbd>Ctrl</kbd>+<kbd>J</kbd>) runs on your own computer. It only asks questions and points things out; it never changes your world.</p>`,
       `<p><b>Заседнах</b> показва какво има нужда от разработка. Изберете нещо и отговорете на въпроси за него, един по един.</p><p><b>Противоречията</b> се проверяват при всяко запазване. <b>Вие решавате</b> кое е канон.</p><p>Незадължителният <b>AI помощник</b> (<kbd>Ctrl</kbd>+<kbd>J</kbd>) работи на вашия компютър. Само задава въпроси и посочва неща; никога не променя света ви.</p>`)],
+    [tf("Build your world step by step", "Изградете света стъпка по стъпка"), "☾", tf(`<p>The <b>World-building path</b> (sidebar) walks you from the first idea to a finished world: premise, cosmology, geography, history, peoples and cultures, religion, magic, power, economy, characters and story.</p>
+      <p>Each stage asks questions one at a time and suggests the entries a finished world needs, like cultures, religions, deities, species, governments, currencies and holidays. A meter shows how complete each stage is, and the dashboard shows the whole world.</p>`,
+      `<p><b>Пътят на света</b> (отстрани) ви води от първата идея до завършен свят: замисъл, космология, география, история, народи и култури, религия, магия, власт, икономика, персонажи и сюжет.</p><p>Всеки етап задава въпроси един по един и предлага нужните записи: култури, религии, божества, раси, управления, валути и празници. Измервател показва колко е завършен всеки етап, а таблото — целия свят.</p>`)],
+    [tf("Stay organized", "Поддържайте ред"), "☐", tf(`<p><b>To-do</b> keeps things to decide, research, write or fix, on their own or attached to an entry (⋯ → To-do).</p>
+      <p>In any list, set filters (type, tag, status, even “missing a field”, like places with no ruler) and press <b>☆ Save as smart list</b>; it stays in the sidebar and updates itself.</p>
+      <p><b>Random tables</b> roll NPCs, taverns, rumours, plot hooks, weather, ruins and treasure, using names and places from your own world. Make your own tables too.</p>`,
+      `<p><b>Задачи</b> пази неща за решаване, проучване, писане или поправка, самостоятелно или към запис (⋯ → Задача).</p><p>Във всеки списък задайте филтри (вид, етикет, статус, дори „липсва поле“) и натиснете <b>☆ Запази като умен списък</b>; остава отстрани и се обновява сам.</p><p><b>Случайни таблици</b> генерират персонажи, кръчми, слухове, сюжетни куки, време, руини и съкровища с имена и места от вашия свят. Може и свои таблици.</p>`)],
+    [tf("Make it look like yours", "Направете го свое"), "◐", tf(`<p>Settings → <b>Theme</b> changes every color (including each entry type's), the fonts, the size of everything, line spacing, corners, the glow, and can put an image behind your pages.</p>
+      <p>Save your own themes and share them as files. Start from a ready-made one, like Minas Morgul, Blood moon or Parchment.</p>`,
+      `<p>Настройки → <b>Тема</b> сменя всеки цвят (и на всеки вид запис), шрифтовете, размера, междуредието, ъглите, сиянието и може да сложи изображение зад страниците.</p><p>Запазвайте свои теми и ги споделяйте като файлове. Започнете от готова: Minas Morgul, Blood moon или Parchment.</p>`)],
     [tf("Safe by default", "Безопасно по подразбиране"), "⛨", tf(`<p>Every entry keeps its earlier versions (<b>⋯ → History</b>). Deleted entries go to the <b>Trash</b> first. A zip backup of your world is made when you close Morgul.</p>
       <p>Wrap author-only parts in <code>:::secret</code> … <code>:::</code>; they never appear in exports.</p>
       <p>Updates only replace the app, never your world.</p>`,
@@ -105,10 +115,11 @@ function startTour(after) {
     const [title, icon, html, last] = S[i];
     $(".modal", ov).innerHTML = `<div class="tour"><div class="tour-icon">${icon}</div><h2>${esc(title)}</h2><div class="tour-body">${html}</div>
       ${last ? `<div class="tour-actions">
+        <button class="btn" data-act="path">☾ ${tf("Start the world-building path", "Започни пътя на света")}</button>
         <button class="btn" data-act="import">📄 ${tf("Import notes, a folder or Word files", "Внеси бележки, папка или Word файлове")}</button>
         <button class="btn" data-act="paste">✎ ${tf("Paste a document and split it", "Постави документ и го раздели")}</button>
-        ${Example.has() ? "" : `<button class="btn" data-act="example">☾ ${tf("Explore a small example world first", "Първо разгледай малък примерен свят")}</button>`}
-        <button class="btn primary" data-act="new">＋ ${tf("Start with an empty world", "Започни с празен свят")}</button></div>` : ""}
+        ${Example.has() || M.entries.size > 12 ? "" : `<button class="btn" data-act="example">✦ ${tf("Explore a small example world first", "Първо разгледай малък примерен свят")}</button>`}
+        <button class="btn primary" data-act="new">＋ ${M.entries.size ? tf("Write a new entry", "Нов запис") : tf("Start with an empty world", "Започни с празен свят")}</button></div>` : ""}
       <div class="tour-foot"><div class="tour-dots">${S.map((_, k) => `<i class="${k === i ? "on" : ""}"></i>`).join("")}</div><span class="spacer"></span>
         ${i ? `<button class="btn ghost" data-back>${tf("Back", "Назад")}</button>` : `<button class="btn ghost" data-skip>${tf("Skip", "Пропусни")}</button>`}
         ${last ? `<button class="btn" data-done>${tf("Close", "Затвори")}</button>` : `<button class="btn primary" data-next>${tf("Next", "Напред")}</button>`}</div></div>`;
@@ -125,7 +136,8 @@ function startTour(after) {
     document.addEventListener("keydown", k);
   } }).then(async act => {
     M.settings = await api("settings", { tourSeen: TOUR_VERSION });
-    if (act === "import") Importer.open();
+    if (act === "path") Panes.show({ view: "build" });
+    else if (act === "import") Importer.open();
     else if (act === "paste") { await Importer.open(); }
     else if (act === "example") Example.add();
     else if (act === "new") newEntryBox();
@@ -150,6 +162,11 @@ Views.help = (el, r, pane) => {
     [tf("Worlds and where they live", "Светове и къде са"), tf("Settings → Worlds lets you start a new world, open another world folder, switch between worlds, or move this world to another folder or drive. Each world is a normal folder of text files.", "Настройки → Светове: нов свят, отваряне на друга папка, превключване или преместване на света. Всеки свят е обикновена папка с текстови файлове.")],
     [tf("Export and print", "Експорт и печат"), tf("Export turns the world (or part of it) into a small website you can share or open anywhere, or prints it to PDF. Secret parts are always left out.", "Експортът прави уебсайт от света (или част от него) или го отпечатва в PDF. Тайните части винаги се пропускат.")],
     [tf("The AI helper (optional)", "AI помощникът (по избор)"), tf("Install Ollama (ollama.com), run “ollama pull gemma4:e4b”, then open the helper with Ctrl+J. It runs only on your computer, starts when you use it and stops when Morgul closes. It asks questions and points out contradictions; it never writes into your world.", "Инсталирайте Ollama (ollama.com), изпълнете „ollama pull gemma4:e4b“ и отворете с Ctrl+J. Работи само на компютъра ви и никога не пише в света ви.")],
+    [tf("The world-building path", "Пътят на света"), tf("Eleven stages take a world from idea to finished: premise, cosmology, geography, history, peoples and cultures, religion, magic, power and politics, economy, characters, story. Each asks questions one at a time (answers are kept in a “worldbuilding notes” entry per stage) and lists the entries it needs. The meter combines answered questions, how many entries exist, and how filled in they are.", "Единадесет етапа водят света от идея до завършен вид. Всеки задава въпроси един по един (отговорите са в запис „бележки за света“ за етапа) и показва нужните записи. Измервателят съчетава отговорите, броя записи и колко са попълнени.")],
+    [tf("Cultures, religions, governments and more", "Култури, религии, управления и още"), tf("Types for Culture, Religion, Deity, Species, Government, Currency and Holiday come with fields that link them together: a culture's homeland and faiths, a government's ruler, seat and currency, a holiday's religion. Locations now also have government, cultures, economy, defenses and notable places.", "Видовете Култура, Религия, Божество, Раса, Управление, Валута и Празник имат полета, които ги свързват. Местата вече имат и управление, култури, икономика, отбрана и забележителности.")],
+    [tf("Smart lists and to-dos", "Умни списъци и задачи"), tf("In Everything or any type, pick filters (status, tag, text, or a field that's still empty) and press ☆ Save as smart list. To-dos are kinds of work (decide, research, write, fix); add them from the To-do page or from an entry's ⋯ menu, where they also show at the top.", "В „Всичко“ или всеки вид изберете филтри и натиснете ☆ Запази като умен списък. Задачите (реши, проучи, напиши, поправи) се добавят от страница Задачи или от менюто ⋯ на запис.")],
+    [tf("Random tables", "Случайни таблици"), tf("Roll offline generators for NPCs, taverns, rumours, plot hooks, weather, ruins and treasure. They use your languages' sample names and your own places, factions, characters, creatures and gods. Make your own tables with one result per line; {name}, {place}, {faction}, {character}, {creature}, {deity} and {Another table} are filled in for you.", "Офлайн генератори за персонажи, кръчми, слухове, сюжетни куки, време, руини и съкровища, с имена и места от вашия свят. Може и свои таблици по един резултат на ред.")],
+    [tf("Theme", "Тема"), tf("Settings → Theme: start from a ready theme, then change any color (and each entry type's color), the fonts for headings, interface and writing, the size of everything, line spacing, corner roundness, glow, compact layout, and a background image. Save themes under your own name; export them as .morgul-theme files and import other people's.", "Настройки → Тема: всеки цвят, шрифтове, размер, междуредие, ъгли, сияние, сбита подредба и фоново изображение. Запазвайте свои теми, експортирайте ги като .morgul-theme файлове и внасяйте чужди.")],
     [tf("Updates", "Обновления"), tf("When a new version is out, a banner offers “Update now”. Only the app is replaced; your worlds, settings and backups stay. Settings → Morgul can check by hand, turn the automatic check off, or go back to a previous version.", "Когато има нова версия, лента предлага „Обнови сега“. Сменя се само приложението. Настройки → Morgul: ръчна проверка, изключване на автоматичната или връщане към предишна версия.")],
   ];
   el.innerHTML = paneHead(tf("Help", "Помощ"), "", pane) + `<div class="pane-body"><div class="wrap">
@@ -240,7 +257,8 @@ async function afterStart() {
   const last = M.settings.lastVersion, cur = M.version.version;
   const fresh = !M.entries.size;
   if (last !== cur) M.settings = await api("settings", { lastVersion: cur });
-  if (!M.settings.tourSeen && fresh) startTour();
-  else if (last !== cur) WhatsNew.show(last || null);
+  const whatsNew = () => { if (last && last !== cur) WhatsNew.show(last); else if (!last && !fresh) WhatsNew.show(null); };
+  if ((M.settings.tourSeen || 0) < TOUR_VERSION) startTour(whatsNew);
+  else if (last !== cur) whatsNew();
   if (M.settings.update_check !== false) setTimeout(() => Updates.check(false, true), 2500);
 }

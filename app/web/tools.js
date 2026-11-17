@@ -45,7 +45,7 @@ function streak() {
 function writingCard() {
   const w = M.state.words || {}, n = w[today()] || 0, goal = +M.settings.daily_goal || 0, st = streak();
   const pct = goal ? Math.min(100, Math.round(n / goal * 100)) : 0;
-  return `<div class="card writing-card" data-goal-card>
+  return `<div class="card writing-card" data-goal-card style="margin-bottom:0">
     <div><div class="faint small">${tf("Written today", "Написано днес")}</div><div style="font:600 22px var(--serif)">${n} <span class="faint" style="font-size:13px">${t("words")}${goal ? ` / ${goal}` : ""}</span></div></div>
     ${goal ? `<div class="goal-bar"><i style="width:${pct}%"></i></div>` : `<button class="btn small ghost" data-set-goal>${tf("Set a daily goal", "Задай дневна цел")}</button>`}
     ${st > 1 ? `<div class="small" style="color:var(--accent)" title="${tf("Days in a row you reached your goal", "Поредни дни с изпълнена цел")}">✦ ${st} ${tf("days in a row", "поредни дни")}</div>` : ""}
@@ -79,11 +79,13 @@ const Importer = (() => {
   const b64 = buf => { let s = ""; const a = new Uint8Array(buf); for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode(...a.subarray(i, i + 0x8000)); return btoa(s); };
   const baseName = n => n.split(/[\\/]/).pop().replace(/\.(md|markdown|txt|text|docx)$/i, "");
   // a heading named like a type ("Characters", "Места") decides the type of the entries under it
-  const SYN = { character: "characters people persons cast heroes villains npcs персонажи герои хора", location: "places locations geography regions cities places and regions места локации градове земи",
+  const SYN = { character: "characters people persons cast heroes villains npcs персонажи герои хора", location: "places locations geography regions cities places and regions settlements места локации градове земи селища",
+    deity: "gods deities pantheon богове божества пантеон", species: "species races peoples раси народи", culture: "cultures customs култури обичаи", religion: "religions faiths belief религии вери вяра",
+    government: "governments realms kingdoms nations states управление държави царства", currency: "currencies money coins валути пари монети", holiday: "holidays festivals feasts празници",
     event: "events history timeline събития история", faction: "factions groups organizations organisations orders houses фракции групи организации ордени",
     item: "items objects artifacts artefacts relics предмети артефакти", creature: "creatures monsters beasts bestiary същества чудовища зверове",
     ritual: "rituals spells ритуали заклинания", rule: "rules magic system laws of magic правила магия", term: "terms glossary термини речник",
-    language: "languages езици", chapter: "chapters глави", entity: "entities gods deities същности богове", potion: "potions отвари", ingredient: "ingredients съставки" };
+    language: "languages езици", chapter: "chapters глави", entity: "entities powers същности сили", potion: "potions отвари", ingredient: "ingredients съставки" };
   function guessType(h) {
     const s = norm(h).replace(/[^\p{L} ]/gu, "").trim(); if (!s) return "";
     for (const [k, v] of Object.entries(SYN)) if (M.world.types.some(x => x.key === k) && (v.split(" ").includes(s) || v.includes(" " + s + " "))) return k;

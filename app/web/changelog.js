@@ -1,6 +1,23 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.1.0", items: [
+    "<b>World-building path</b> (sidebar, ☾). Eleven stages take your world from first idea to finished: premise, cosmology, geography, history, peoples and cultures, religion, magic, power, economy, characters and story. Each stage asks questions <b>one at a time</b> and lists the entries a finished world needs. A meter shows how complete each stage is; the dashboard shows the whole world.",
+    "<b>New entry types:</b> Culture, Religion, Deity, Species, Government, Currency and Holiday, with fields that link them together. Places now also have government, cultures, economy, defenses and notable places.",
+    "<b>Theme editor</b> (Settings → Theme): every color, each entry type's color, fonts for headings, interface and writing, the size of everything, line spacing, corners, glow, a compact layout and a background image. Save your own themes and share them as files. New ready-made themes: Blood moon and Parchment (light).",
+    "<b>Smart lists:</b> set filters in any list (even “missing a field”, like places with no ruler) and press ☆ Save as smart list. It stays in the sidebar and keeps itself up to date.",
+    "<b>To-do</b> (sidebar): things to decide, research, write or fix, on their own or attached to an entry (⋯ → To-do). An entry's open to-dos show at its top.",
+    "<b>Random tables</b> (Tools): NPCs, taverns, rumours, plot hooks, weather, ruins and treasure, made from your own names and places. Add your own tables too.",
+    "The <b>welcome tour</b> and <b>Help</b> now cover everything above.",
+  ], bg: [
+    "<b>Пътят на света</b> (отстрани, ☾): единадесет етапа от първата идея до завършен свят, с въпроси <b>един по един</b> и измерватели за завършеност.",
+    "<b>Нови видове:</b> Култура, Религия, Божество, Раса, Управление, Валута и Празник. Местата имат и управление, култури, икономика, отбрана и забележителности.",
+    "<b>Редактор на теми</b> (Настройки → Тема): всеки цвят, шрифтове, размер, междуредие, ъгли, сияние, сбита подредба и фоново изображение. Запазвайте и споделяйте свои теми. Нови теми: Blood moon и Parchment.",
+    "<b>Умни списъци:</b> задайте филтри и натиснете ☆ Запази като умен списък — остава отстрани и се обновява сам.",
+    "<b>Задачи</b> (отстрани): неща за решаване, проучване, писане или поправка, самостоятелно или към запис.",
+    "<b>Случайни таблици</b>: персонажи, кръчми, слухове, сюжетни куки, време, руини и съкровища от вашите имена и места.",
+    "<b>Обиколката</b> и <b>Помощ</b> обхващат всичко това.",
+  ] },
   { v: "1.0.0", items: [
     "<b>Updates like Oracle 2.</b> When a new version is out, a banner offers <b>Update now</b>. Only the app is replaced: your worlds, settings and backups are never touched, and a backup is made first. Settings → Morgul can check by hand or go back to the previous version.",
     "<b>Help</b> (sidebar) with a welcome tour, every shortcut, and how each part works.",

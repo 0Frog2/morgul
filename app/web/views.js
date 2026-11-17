@@ -27,7 +27,7 @@ Views.dashboard = (el, r, pane) => {
         <div class="card" style="cursor:pointer" data-go="stuck"><div class="faint small">${t("To fill in")}</div><div style="font:600 26px var(--serif)">${Checks.fleshOut().length}</div><div class="faint small">${tf("things waiting to be fleshed out", "неща за доразвиване")}</div></div>
         <div class="card" style="cursor:pointer" data-go="contradictions"><div class="faint small">${t("Open contradictions")}</div><div style="font:600 26px var(--serif);color:${issues ? "var(--warn)" : "inherit"}">${issues}</div><div class="faint small">${inbox} ${tf("notes in the inbox", "бележки във входящи")}</div></div>
       </div>
-      ${writingCard()}
+      <div class="grid c2" style="margin-bottom:6px">${writingCard()}<div class="card writing-card" style="cursor:pointer" data-go="build"><div><div class="faint small">${tf("World built", "Изграден свят")}</div><div style="font:600 22px var(--serif)">${Path.overall()}%</div></div><div style="flex:1">${Path.meter(Path.overall())}</div><span class="faint small">${tf("World-building path", "Пътят на света")} ›</span></div></div>
       ${lastSessionCard()}
       <div class="grid c2">
         <div>
@@ -72,31 +72,39 @@ function lastSessionCard() {
 
 // ------------------------------------------------------------------ browse (filters by type, tag, status)
 Views.browse = (el, r, pane) => {
-  const st = { type: r.type || "", tag: r.tag || "", status: "", q: "", sort: "name", grid: !!M.state.browseGrid };
+  const st = { type: r.type || "", tag: r.tag || "", status: r.status || "", q: r.q || "", sort: r.sort || "name", missing: r.missing || "", grid: !!M.state.browseGrid };
   const tags = [...new Set([...M.entries.values()].flatMap(e => e.tags || []))].sort();
-  const title = st.type ? `${typeOf(st.type).icon} ${esc(typeName(st.type))}` : t("Everything");
-  el.innerHTML = paneHead(title, `<button class="btn primary small" data-new>＋ ${t("New")}</button>`, pane) + `
+  const title = r.smart ? `☆ ${esc(r.smart.name)}` : st.type ? `${typeOf(st.type).icon} ${esc(typeName(st.type))}` : t("Everything");
+  const fieldsOf = st.type ? typeOf(st.type).fields.filter(f => !["relations", "knowers"].includes(f.kind)) : [];
+  el.innerHTML = paneHead(title, `${r.smart ? `<button class="btn small ghost danger" data-unsmart title="${tf("Delete this smart list (entries stay)", "Изтрий умния списък (записите остават)")}">✕</button>` : ""}
+    <button class="btn small ghost" data-smart title="${tf("Save these filters as a smart list in the sidebar", "Запази филтрите като умен списък в страничната лента")}">☆ ${r.smart ? tf("Update smart list", "Обнови умния списък") : tf("Save as smart list", "Запази като умен списък")}</button>
+    <button class="btn primary small" data-new>＋ ${t("New")}</button>`, pane) + `
     <div class="pane-body"><div class="wrap wide">
       <div class="row" style="margin-bottom:10px">
         <input class="input" data-q placeholder="${t("Filter…")}" style="max-width:280px">
         <select class="input" data-type style="width:auto"><option value="">${t("All types")}</option>${M.world.types.map(x => `<option value="${x.key}" ${x.key === st.type ? "selected" : ""}>${esc(typeName(x.key))}</option>`).join("")}</select>
         <select class="input" data-status style="width:auto"><option value="">${tf("Any status", "Всеки статус")}</option><option value="canon">${t("Canon")}</option><option value="draft">${t("Draft")}</option><option value="scrapped">${t("Scrapped")}</option></select>
         <select class="input" data-sort style="width:auto"><option value="name">${t("Name")}</option><option value="updated">${t("Updated")}</option><option value="created">${t("Created")}</option><option value="words">${t("words")}</option><option value="links">${tf("Most linked", "Най-свързани")}</option></select>
+        ${fieldsOf.length ? `<select class="input" data-missing style="width:auto"><option value="">${tf("Any fields", "Всички полета")}</option>${fieldsOf.map(f => `<option value="${f.key}" ${f.key === st.missing ? "selected" : ""}>${tf("Missing:", "Липсва:")} ${esc(fieldLabel(f))}</option>`).join("")}</select>` : ""}
         <span class="spacer"></span><button class="btn small ghost" data-grid>${st.grid ? "☰" : "▦"}</button>
       </div>
       ${tags.length ? `<div class="row" style="margin-bottom:12px" data-tags>${tags.map(x => `<span class="chip ${x === st.tag ? "on" : ""}" data-tag="${esc(x)}">#${esc(x)}</span>`).join("")}</div>` : ""}
       <div data-list></div>
     </div></div>`;
   const draw = () => {
-    let list = [...M.entries.values()].filter(e => (!st.type || e.type === st.type) && (!st.tag || (e.tags || []).includes(st.tag)) && (!st.status || (e.status || "draft") === st.status));
-    if (st.q) { const q = norm(st.q); list = list.filter(e => norm(e.title).includes(q) || (e.aliases || []).some(a => norm(a).includes(q)) || norm(e.body).includes(q)); }
+    let list = [...M.entries.values()].filter(e => Smart.match(e, st));
     const key = { name: e => e.title.toLowerCase(), updated: e => -new Date(e.updated || 0), created: e => -new Date(e.created || 0), words: e => -words(e.body), links: e => -(Idx.backlinks.get(e.id) || []).length }[st.sort];
     list.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
     $("[data-list]", el).innerHTML = list.length ? (st.grid ? `<div class="grid auto">${list.map(cardFor).join("")}</div>` : `<div class="list">${list.map(e => rowFor(e, `<span class="faint small">${esc(typeName(e.type))}</span>`)).join("")}</div>`)
       : `<div class="empty">${t("Nothing here yet.")}</div>`;
   };
+  $("[data-q]", el).value = st.q;
+  $('[data-status]', el).value = st.status; $('[data-sort]', el).value = st.sort;
+  $("[data-missing]", el)?.addEventListener("change", ev => { st.missing = ev.target.value; draw(); });
+  $("[data-smart]", el).onclick = () => Smart.save({ id: r.smart?.id, name: r.smart?.name, type: st.type, tag: st.tag, status: st.status, q: st.q, sort: st.sort, missing: st.missing });
+  $("[data-unsmart]", el)?.addEventListener("click", async () => { if (await confirmBox(tf(`Delete the smart list “${r.smart.name}”? The entries stay.`, `Да изтрия ли умния списък „${r.smart.name}“? Записите остават.`))) Smart.remove(r.smart.id); });
   $("[data-q]", el).oninput = ev => { st.q = ev.target.value; draw(); };
-  $("[data-type]", el).onchange = ev => Panes.show({ view: "browse", type: ev.target.value, tag: st.tag }, pane);
+  $("[data-type]", el).onchange = ev => r.smart ? (st.type = ev.target.value, Views.browse(el, { ...r, ...st, type: ev.target.value, missing: "" }, pane)) : Panes.show({ view: "browse", type: ev.target.value, tag: st.tag }, pane);
   $("[data-status]", el).onchange = ev => { st.status = ev.target.value; draw(); };
   $("[data-sort]", el).onchange = ev => { st.sort = ev.target.value; draw(); };
   $("[data-grid]", el).onclick = () => { M.state.browseGrid = !st.grid; saveState(); Panes.show({ view: "browse", type: st.type, tag: st.tag }, pane); };
@@ -479,12 +487,8 @@ Views.settings = (el, r, pane) => {
       <label>${tf("What it's like", "Какъв е")}</label><div><textarea class="input" data-wabout rows="2" placeholder="${tf("One or two sentences: genre, mood, inspirations.", "Едно-две изречения: жанр, настроение, вдъхновение.")}">${esc(w.about || "")}</textarea>
         <div class="faint small">${tf("The AI helper reads this so its questions fit your world. It never treats it as canon.", "AI помощникът чете това, за да пасват въпросите му на света ви. Никога не го приема за канон.")}</div></div>
     </div><div class="row" style="margin-top:8px"><span class="spacer"></span><button class="btn small primary" data-wsave>${t("Save")}</button></div></div>
-    <div class="section-title">${tf("Colors", "Цветове")}</div>
-    <div class="card">
-      <div class="row theme-presets" style="margin-bottom:10px"><span class="faint small">${tf("Start from:", "Започнете от:")}</span>${Object.entries(THEMES).map(([n, c]) => `<button class="chip" data-preset="${esc(n)}"><i style="background:${c.bg}"></i><i style="background:${c.accent}"></i>${esc(n)}</button>`).join("")}</div>
-      <div class="swatches">${THEME_KEYS.map(([k, en, bg]) => `<label class="swatch"><input type="color" data-col="${k}" value="${themeColors()[k]}"><span>${esc(tf(en, bg))}</span><code data-hex="${k}">${themeColors()[k]}</code></label>`).join("")}</div>
-      <div class="row" style="margin-top:8px"><span class="faint small">${tf("Changes show right away and are saved automatically.", "Промените се виждат веднага и се запазват автоматично.")}</span><span class="spacer"></span><button class="btn small ghost" data-col-reset>${tf("Reset to Minas Morgul", "Върни Minas Morgul")}</button></div>
-    </div>
+    <div class="section-title">${tf("Theme", "Тема")}</div>
+    <div class="card" data-theme-editor></div>
     <div class="section-title">✦ ${t("AI helper")}</div>
     <div class="card"><div class="form-grid">
       <label>${tf("Enabled", "Включен")}</label><label style="padding:7px 0 0"><input type="checkbox" data-s="ai_enabled" ${s.ai_enabled ? "checked" : ""}> ${tf("Show the ✦ side panel and AI buttons", "Показвай страничния панел ✦ и бутоните за AI")}</label>
@@ -527,14 +531,7 @@ Views.settings = (el, r, pane) => {
   api("ai/status").then(st => { $("[data-aistat]", el).textContent = !st.enabled ? tf("Turned off.", "Изключен.") : !st.installed ? tf("Ollama isn't installed, so the AI helper can't run. Everything else works.", "Ollama не е инсталиран, така че AI помощникът не може да работи. Всичко друго работи.")
     : st.running ? tf("Ollama is running. Models: ", "Ollama работи. Модели: ") + (st.models.join(", ") || "—") : tf("Ollama starts only when you use the AI and stops when Morgul closes.", "Ollama се пуска само когато ползвате AI и спира при затваряне на Morgul."); }).catch(() => {});
   $("[data-wsave]", el).onclick = async () => { w.name = $("[data-wname]", el).value.trim(); w.about = $("[data-wabout]", el).value.trim(); await saveWorld(); toast(t("Saved")); };
-  const saveTheme = debounce(async c => { M.settings = await api("settings", { theme: c }); }, 400);
-  const setTheme = (c, save = true) => {
-    applyTheme(c); for (const [k] of THEME_KEYS) { const i = $(`[data-col="${k}"]`, el); if (i.value.toLowerCase() !== c[k].toLowerCase()) i.value = c[k]; $(`[data-hex="${k}"]`, el).textContent = c[k].toUpperCase(); }
-    M.settings.theme = c; if (save) saveTheme(c);
-  };
-  $$("[data-col]", el).forEach(i => i.oninput = () => setTheme({ ...themeColors(), [i.dataset.col]: i.value }));
-  $$("[data-preset]", el).forEach(b => b.onclick = () => setTheme({ ...THEMES[b.dataset.preset] }));
-  $("[data-col-reset]", el).onclick = () => setTheme({ ...THEMES["Minas Morgul"] });
+  ThemeEditor.render($("[data-theme-editor]", el));
   $("[data-restart]", el).onclick = () => restartMorgul();
   $("[data-share]", el).onclick = async ev => {
     ev.target.disabled = true;

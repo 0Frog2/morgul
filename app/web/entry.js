@@ -129,7 +129,7 @@ const Entry = (() => {
     const items = [
       ["writing", "✎ " + t("Writing mode")], ["history", "⟲ " + t("History")], ["used", "⌕ " + t("Where is this used?")],
       ["check", "⚖ " + t("Check this entry")], ["print", "⎙ " + t("Print / PDF")], ["export", "⇪ " + tf("Export as web page", "Експорт като уеб страница")],
-      ["dup", "⧉ " + tf("Duplicate", "Дублирай")],
+      ["todo", "☐ " + tf("Add a to-do for this entry", "Добави задача към записа")], ["dup", "⧉ " + tf("Duplicate", "Дублирай")],
       M.world.templates?.[e.type]?.from === e.title ? ["untpl", "▭ " + tf("Stop using as template", "Спри да е шаблон")] : ["tpl", "▭ " + tf(`Use as template for new ${typeName(e.type)} entries`, `Шаблон за нови записи „${typeName(e.type)}“`)],
       ["delete", "🗑 " + t("Delete")],
     ];
@@ -142,6 +142,7 @@ const Entry = (() => {
       if (k === "check") AI.checkEntry(e.id);
       if (k === "print") Exporter.print([e.id]);
       if (k === "export") Exporter.site([e.id], e.title);
+      if (k === "todo") Todos.add(e.id);
       if (k === "tpl") Templates.setFrom(e);
       if (k === "untpl") Templates.clear(e.type);
       if (k === "dup") { const c = await createEntry(e.type, e.title + " (copy)", { fields: structuredClone(e.fields || {}), body: e.body, tags: e.tags }); open(c.id); }

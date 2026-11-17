@@ -29,27 +29,9 @@ async function api(path, body, opts = {}) {
 setInterval(() => fetch("/api/ping", { method: "POST" }).catch(() => {}), 8000);
 
 // ------------------------------------------------------------------ colours (Settings → Colors)
-const THEMES = {
-  "Minas Morgul": { bg: "#050807", panel: "#0A0F0D", raised: "#111916", line: "#1E2B27", accent: "#8EB69B", text: "#D6DED8", warn: "#D9A65A", danger: "#C8685E" },
-  "Old green":    { bg: "#051F20", panel: "#0B2B26", raised: "#163832", line: "#235347", accent: "#8EB69B", text: "#DAF1DE", warn: "#D9A65A", danger: "#C8685E" },
-  "Ash & ember":  { bg: "#0A0808", panel: "#121010", raised: "#1B1716", line: "#2C2523", accent: "#C98F6A", text: "#E2DAD4", warn: "#D9A65A", danger: "#C8685E" },
-  "Night ink":    { bg: "#06080D", panel: "#0C1018", raised: "#131925", line: "#202A3A", accent: "#8FA8D6", text: "#D8DEEA", warn: "#D9A65A", danger: "#C8685E" },
-};
-const THEME_KEYS = [["bg", "Background", "Фон"], ["panel", "Panels", "Панели"], ["raised", "Raised (cards, buttons)", "Повдигнати (карти, бутони)"],
-  ["line", "Lines", "Линии"], ["accent", "Accent / glow", "Акцент / сияние"], ["text", "Text", "Текст"], ["warn", "Warnings", "Предупреждения"], ["danger", "Delete", "Изтриване"]];
 const hexRgb = h => { const m = String(h).replace("#", "").match(/^([0-9a-f]{6})$/i); if (!m) return [0, 0, 0]; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
 const rgba = (h, a) => `rgba(${hexRgb(h).join(", ")}, ${a})`;
-function themeColors() { return { ...THEMES["Minas Morgul"], ...(M.settings.theme || {}) }; }
-function applyTheme(c = themeColors()) {
-  const r = document.documentElement.style;
-  for (const [k] of THEME_KEYS) r.setProperty("--" + k, c[k]);
-  r.setProperty("--muted", rgba(c.text, .62)); r.setProperty("--faint", rgba(c.text, .38));
-  r.setProperty("--accent-soft", rgba(c.accent, .10)); r.setProperty("--accent-mid", rgba(c.accent, .22));
-  r.setProperty("--accent-glow", rgba(c.accent, .35)); r.setProperty("--accent-halo", rgba(c.accent, .18));
-  r.setProperty("--warn-soft", rgba(c.warn, .14)); r.setProperty("--danger-soft", rgba(c.danger, .14));
-  r.setProperty("--row-line", rgba(c.line, .9));
-  $('meta[name="theme-color"]')?.setAttribute("content", c.bg);
-}
+function applyTheme() {}           // replaced by theme.js
 const localStamp = (d = new Date()) => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
 async function restartMorgul() {
   toast(tf("Restarting Morgul…", "Morgul се рестартира…"));
@@ -109,7 +91,9 @@ const DEFAULT_WORLD = {
     { key: "location", name: "Location", bg: "Място", icon: "⌂", color: "#7FB0C9", fields: [
       F("kind", "Kind", "select", { options: ["world", "continent", "region", "country", "city", "village", "landmark", "building", "underground", "wilderness", "other"] }),
       F("partOf", "Part of", "link", { to: ["location"] }), F("ruler", "Ruled by", "link", { to: ["character", "faction", "entity"] }),
-      F("founded", "Founded", "date"), F("destroyed", "Destroyed", "date"), F("population", "Population", "text") ] },
+      F("founded", "Founded", "date"), F("destroyed", "Destroyed", "date"), F("population", "Population", "text"),
+      F("government", "Government", "link", { to: ["government"] }), F("cultures", "Cultures", "links", { to: ["culture", "species"] }),
+      F("economy", "Economy and trade", "long"), F("defenses", "Defenses", "long"), F("notable", "Notable places", "list") ] },
     { key: "event", name: "Event", bg: "Събитие", icon: "✦", color: "#D9A65A", fields: [
       F("date", "Date", "date"), F("endDate", "Ended", "date"), F("where", "Where", "link", { to: ["location"] }),
       F("participants", "Participants", "links", { to: ["character", "faction", "entity", "creature"] }),
@@ -139,6 +123,29 @@ const DEFAULT_WORLD = {
       F("knownBy", "Known by", "links", { to: ["faction", "character", "entity"] }) ] },
     { key: "rule", name: "Magic rule", bg: "Правило на магията", icon: "§", color: "#8EB69B", fields: [ F("domain", "Applies to", "text") ] },
     { key: "concept", name: "Concept", bg: "Понятие", icon: "◇", color: "#8EA5B6", fields: [] },
+    { key: "culture", name: "Culture", bg: "Култура", icon: "❖", color: "#C9A26B", fields: [
+      F("homeland", "Homeland", "links", { to: ["location"] }), F("peoples", "Peoples", "links", { to: ["species"] }), F("language", "Language", "link", { to: ["language"] }),
+      F("religions", "Religions", "links", { to: ["religion", "deity", "entity"] }), F("values", "Values and beliefs", "long"), F("customs", "Customs and rites of passage", "long"),
+      F("food", "Food and drink", "long"), F("dress", "Dress and appearance", "long"), F("arts", "Arts, music and stories", "long"), F("taboos", "Taboos and crimes", "long") ] },
+    { key: "religion", name: "Religion", bg: "Религия", icon: "☩", color: "#B49ACB", fields: [
+      F("deities", "Gods and powers", "links", { to: ["deity", "entity"] }), F("followers", "Followers", "links", { to: ["culture", "faction", "location", "species"] }),
+      F("holySites", "Holy places", "links", { to: ["location"] }), F("founded", "Founded", "date"), F("beliefs", "Core beliefs", "long"), F("practices", "Worship and rituals", "long"),
+      F("clergy", "Clergy and hierarchy", "long"), F("afterlife", "Death and the afterlife", "long"), F("heresies", "Schisms and heresies", "long") ] },
+    { key: "deity", name: "Deity", bg: "Божество", icon: "☼", color: "#D8C27A", fields: [
+      F("domain", "Domain", "text"), F("pantheon", "Religion", "link", { to: ["religion"] }), F("symbol", "Symbol", "text"),
+      F("form", "Appearance", "long"), F("worshippers", "Worshipped by", "links", { to: ["culture", "faction", "species"] }), F("myths", "Myths", "long"), F("demands", "What they ask of mortals", "long") ] },
+    { key: "species", name: "Species", bg: "Раса", icon: "❂", color: "#9CC48A", fields: [
+      F("lifespan", "Lifespan", "text"), F("homeland", "Homeland", "links", { to: ["location"] }), F("appearance", "Appearance", "long"),
+      F("traits", "Traits and abilities", "long"), F("cultures", "Cultures", "links", { to: ["culture"] }), F("origin", "Origin", "long") ] },
+    { key: "government", name: "Government", bg: "Управление", icon: "♛", color: "#C98F6A", fields: [
+      F("kind", "Kind", "select", { options: ["monarchy", "empire", "theocracy", "republic", "council", "tribe", "occupation", "other"] }),
+      F("realm", "Rules over", "links", { to: ["location"] }), F("ruler", "Ruler", "link", { to: ["character", "faction", "entity"] }), F("seat", "Seat", "link", { to: ["location"] }),
+      F("founded", "Founded", "date"), F("laws", "Laws and justice", "long"), F("succession", "Succession", "long"), F("army", "Army and enforcement", "long"), F("currency", "Currency", "link", { to: ["currency"] }) ] },
+    { key: "currency", name: "Currency", bg: "Валута", icon: "¤", color: "#D9B65A", fields: [
+      F("usedIn", "Used in", "links", { to: ["location", "government"] }), F("material", "Made of", "text"), F("denominations", "Coins and values", "list"), F("prices", "What things cost", "long") ] },
+    { key: "holiday", name: "Holiday", bg: "Празник", icon: "✺", color: "#E09A7A", fields: [
+      F("when", "When", "text"), F("religion", "Religion", "link", { to: ["religion", "deity"] }), F("cultures", "Celebrated by", "links", { to: ["culture", "location"] }),
+      F("customs", "Customs", "long"), F("origin", "Origin", "long") ] },
     { key: "chapter", name: "Chapter", bg: "Глава", icon: "¶", color: "#DAF1DE", fields: [
       F("order", "Number", "number"), F("progress", "Progress", "select", { options: ["idea", "outline", "draft", "done"] }),
       F("pov", "Point of view", "link", { to: ["character"] }), F("date", "Story date", "date"), F("summary", "Summary", "long") ] },
@@ -173,6 +180,15 @@ const DEFAULT_WORLD = {
 };
 
 const FIELD_BG = {
+  "Government": "Управление", "Cultures": "Култури", "Economy and trade": "Икономика и търговия", "Defenses": "Отбрана", "Notable places": "Забележителни места",
+  "Homeland": "Родина", "Peoples": "Народи", "Language": "Език", "Religions": "Религии", "Values and beliefs": "Ценности и вярвания", "Customs and rites of passage": "Обичаи и обреди",
+  "Food and drink": "Храна и напитки", "Dress and appearance": "Облекло и външност", "Arts, music and stories": "Изкуство, музика и предания", "Taboos and crimes": "Табута и престъпления",
+  "Gods and powers": "Богове и сили", "Followers": "Последователи", "Holy places": "Свети места", "Core beliefs": "Основни вярвания", "Worship and rituals": "Поклонение и ритуали",
+  "Clergy and hierarchy": "Духовенство и йерархия", "Death and the afterlife": "Смърт и отвъдно", "Schisms and heresies": "Разколи и ереси", "Religion": "Религия", "Symbol": "Символ",
+  "Worshipped by": "Почитан от", "Myths": "Митове", "What they ask of mortals": "Какво искат от смъртните", "Lifespan": "Продължителност на живота", "Traits and abilities": "Черти и способности",
+  "Origin": "Произход", "Rules over": "Управлява", "Ruler": "Владетел", "Seat": "Седалище", "Laws and justice": "Закони и правосъдие", "Succession": "Наследяване",
+  "Army and enforcement": "Армия и ред", "Currency": "Валута", "Used in": "Използва се в", "Made of": "Материал", "Coins and values": "Монети и стойности", "What things cost": "Цени",
+  "When": "Кога", "Celebrated by": "Празнува се от", "Customs": "Обичаи",
   "Species": "Вид", "Faction": "Фракция", "Status": "Статус", "Born": "Роден", "Died": "Починал", "Birthplace": "Родно място", "Appearance": "Външност",
   "Personality": "Характер", "First appearance": "Първа поява", "Arc notes": "Развитие", "Relationships": "Връзки", "Kind": "Вид", "Part of": "Част от",
   "Ruled by": "Управлява се от", "Founded": "Основано", "Destroyed": "Разрушено", "Population": "Население", "Date": "Дата", "Ended": "Край", "Where": "Къде",
