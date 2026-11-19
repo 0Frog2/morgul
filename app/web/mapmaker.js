@@ -708,6 +708,16 @@ Views.mapmaker = (el, r, pane) => {
   draw();
 };
 
+// deleting a map: asks first, then moves it to the Trash (Trash → Restore brings it back with its pins, routes and layers)
+async function deleteMap(id, pane) {
+  const e = M.entries.get(id); if (!e) return false;
+  const pins = (e.map?.pins || []).length;
+  if (!await confirmBox(tf(`Delete the map “${e.title}”${pins ? ` and its ${pins} ${pins === 1 ? "pin" : "pins"}` : ""}? It goes to the Trash, where you can restore it. The places on it are not deleted.`,
+    `Да изтрия ли картата „${e.title}“${pins ? (pins === 1 ? " и нейния пин" : ` и нейните ${pins} пина`) : ""}? Отива в кошчето, откъдето може да се върне. Местата на нея не се трият.`), t("Delete"))) return false;
+  await deleteEntry(id); toast(tf("Moved to the Trash.", "Преместено в кошчето.")); Nav.render();
+  Panes.show({ view: "maps" }, pane); return true;
+}
+
 // entry points: Maps list and each map's page
 (() => {
   const list = Views.maps;
@@ -715,6 +725,11 @@ Views.mapmaker = (el, r, pane) => {
     list(el, r, pane);
     const b = document.createElement("button"); b.className = "btn small"; b.innerHTML = `✦ ${tf("Make a map", "Създай карта")}`; b.onclick = () => Panes.show({ view: "mapmaker" }, pane);
     $("[data-new]", el)?.before(b);
+    // a delete button on each map card
+    $$("[data-map]", el).forEach(card => {
+      const d = document.createElement("button"); d.className = "map-del"; d.innerHTML = "🗑"; d.dataset.tip = tf("Delete this map (it goes to the Trash)", "Изтрий картата (отива в кошчето)");
+      d.onclick = ev => { ev.stopPropagation(); deleteMap(card.dataset.map, pane); }; card.append(d);
+    });
     const empty = $(".empty", el); if (empty) empty.insertAdjacentHTML("beforeend", `<div style="margin-top:10px">${tf("No map yet? Press ✦ Make a map to draw one: land, sea, mountains, forests, rivers, regions and names.", "Нямате карта? ✦ Създай карта рисува една: суша, море, планини, гори, реки, области и имена.")}</div>`);
   };
   const one = Views.map;
@@ -726,5 +741,7 @@ Views.mapmaker = (el, r, pane) => {
     b.innerHTML = e.map?.maker ? `✦ ${tf("Edit in map maker", "Промени в създаването")}` : `⇪ ${tf("Trace into map maker", "Прерисувай в създаването")}`;
     b.title = e.map?.maker ? "" : tf("Reads land, sea, forests and mountains from this picture and makes an editable map. Pins are kept; your picture stays in the entry's history.", "Чете суша, море, гори и планини от картината и прави карта за редактиране. Пиновете остават.");
     b.onclick = () => Panes.show({ view: "mapmaker", id: e.id, trace: !e.map?.maker }, pane); row.prepend(b);
+    const d = document.createElement("button"); d.className = "btn small ghost danger"; d.innerHTML = `🗑 ${t("Delete")}`; d.dataset.tip = tf("Delete this map; it goes to the Trash, where you can restore it.", "Изтрий картата; отива в кошчето, откъдето може да се върне.");
+    d.onclick = () => deleteMap(e.id, pane); row.append(d);
   };
 })();

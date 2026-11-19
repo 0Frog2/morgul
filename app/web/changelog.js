@@ -1,6 +1,11 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.8.1", items: [
+    "<b>Delete a map:</b> on the Maps page, rest the mouse on a map and press 🗑 in its corner, or press 🗑 Delete at the top of a map. Morgul asks first; the map goes to the Trash with its pins, routes and layers, and can be restored from there.",
+  ], bg: [
+    "<b>Изтриване на карта:</b> на страницата Карти задръжте мишката върху карта и натиснете 🗑 в ъгъла, или 🗑 Изтрий горе на картата. Morgul пита първо; картата отива в кошчето с пиновете, маршрутите и слоевете и може да се върне оттам.",
+  ] },
   { v: "1.8.0", items: [
     "<b>Maps drawn on paper:</b> trace a phone photo of an ink drawing. Morgul first <b>straightens the photo</b> — drag four handles onto the paper's corners (it guesses them for you), turn it if needed — and leaves out the table around it.",
     "A new tracing mode, <b>An ink drawing (lines on paper)</b>: everything joined to the edge of the paper is sea, every area closed in by a line is land, and small drawings like trees take on what is around them. <b>Click any area to swap it</b> between land and sea (a lake, a title box, a sea monster). Sliders close small gaps in coastlines and leave out small drawings.",

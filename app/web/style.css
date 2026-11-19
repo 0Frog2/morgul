@@ -561,3 +561,9 @@ textarea.tidy-pane { width: 100%; resize: none; font: 14px/1.55 var(--sans); col
 .photo-wrap svg { position: absolute; left: 0; top: 0; overflow: visible; }
 .photo-quad { fill: rgba(142,182,155,.15); stroke: var(--accent); stroke-width: 2; }
 .photo-h { fill: var(--accent); stroke: #fff; stroke-width: 2; cursor: grab; }
+
+/* 1.8.1 delete maps */
+.ecard[data-map] { position: relative; }
+.map-del { position: absolute; top: 8px; right: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 6px; padding: 3px 7px; cursor: pointer; opacity: 0; transition: opacity .15s; }
+.ecard[data-map]:hover .map-del { opacity: 1; }
+.map-del:hover { color: var(--danger); border-color: var(--danger); }

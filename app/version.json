@@ -1,9 +1,8 @@
 {
-  "version": "1.8.0",
+  "version": "1.8.1",
   "date": "2026-11-17",
   "repo": "0Frog2/morgul",
   "notes": [
-    "Trace ink drawings on paper from a photo, with straightening",
-    "Draw land / Cut sea outline tools"
+    "Delete maps (to the Trash, with confirmation)"
   ]
 }
