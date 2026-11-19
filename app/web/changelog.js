@@ -1,6 +1,17 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.8.0", items: [
+    "<b>Maps drawn on paper:</b> trace a phone photo of an ink drawing. Morgul first <b>straightens the photo</b> — drag four handles onto the paper's corners (it guesses them for you), turn it if needed — and leaves out the table around it.",
+    "A new tracing mode, <b>An ink drawing (lines on paper)</b>: everything joined to the edge of the paper is sea, every area closed in by a line is land, and small drawings like trees take on what is around them. <b>Click any area to swap it</b> between land and sea (a lake, a title box, a sea monster). Sliders close small gaps in coastlines and leave out small drawings.",
+    "<b>✎ Draw land</b> and <b>✂ Cut sea</b> in the map maker: draw a loop with the mouse and the inside becomes land, or is cut out as a bay, lake or channel. Perfect for tracing over a reference picture.",
+    "Reference pictures from photos are straightened the same way.",
+  ], bg: [
+    "<b>Карти, нарисувани на лист:</b> прерисуване от снимка на рисунка с мастило. Morgul първо <b>изправя снимката</b> — влачете четири кръгчета до ъглите на листа (той ги отгатва), завъртете при нужда — и изрязва масата около нея.",
+    "Нов режим <b>Рисунка с мастило (линии на лист)</b>: всичко, свързано с ръба на листа, е море, всяка затворена област е суша, а малките рисунки като дървета взимат това около тях. <b>Щракнете област, за да я смените</b> между суша и море. Плъзгачите затварят пролуки и пропускат малки рисунки.",
+    "<b>✎ Начертай суша</b> и <b>✂ Изрежи море</b>: начертайте линия с мишката и вътрешността става суша или се изрязва като залив, езеро или пролив.",
+    "Картините за образец от снимки също се изправят.",
+  ] },
   { v: "1.7.1", items: [
     "<b>Resolving a contradiction asks how.</b> ✓ Resolved opens a window with both passages and <b>suggestions that fit the kind of contradiction</b> (which side is right, a wrong date, someone else with the same name, the same thing in two spellings…), plus ✦ more ideas from the AI. Your answer is kept and shown under Resolved.",
     "From the same window: add the answer to both entries as an <b>author-only note</b>, add a <b>to-do</b> to fix the entry that was wrong, or add a name written in the other alphabet as <b>another name</b>. Morgul still never changes your text by itself.",

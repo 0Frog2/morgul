@@ -551,3 +551,13 @@ textarea.tidy-pane { width: 100%; resize: none; font: 14px/1.55 var(--sans); col
 .res-opt.on { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); background: var(--raised); }
 .res-opt.ai { border-style: dashed; }
 .res-note { margin: 0 0 8px; padding: 8px 10px; border-left: 3px solid var(--accent); background: var(--panel); border-radius: 0 6px 6px 0; }
+
+/* 1.8.0 outlines, photo straightening */
+.mk-lasso { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.mk-lasso polygon { fill: rgba(142,182,155,.25); stroke: var(--accent); stroke-width: 3; stroke-dasharray: 10 6; }
+.mk-lasso polygon.cut { fill: rgba(62,108,142,.3); stroke: #7FA7C2; }
+.photo-wrap { position: relative; }
+.photo-wrap img { width: 100%; height: auto; display: block; border-radius: 6px; user-select: none; }
+.photo-wrap svg { position: absolute; left: 0; top: 0; overflow: visible; }
+.photo-quad { fill: rgba(142,182,155,.15); stroke: var(--accent); stroke-width: 2; }
+.photo-h { fill: var(--accent); stroke: #fff; stroke-width: 2; cursor: grab; }

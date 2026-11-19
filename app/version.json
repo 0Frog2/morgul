@@ -1,8 +1,9 @@
 {
-  "version": "1.7.1",
+  "version": "1.8.0",
   "date": "2026-11-17",
   "repo": "0Frog2/morgul",
   "notes": [
-    "Resolving a contradiction asks how, with suggestions, notes and to-dos"
+    "Trace ink drawings on paper from a photo, with straightening",
+    "Draw land / Cut sea outline tools"
   ]
 }
