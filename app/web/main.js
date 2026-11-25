@@ -20,6 +20,7 @@ const TOOLS = [
   ["glossary", "Aa", "Glossary & languages", "Речник и езици", "Words, languages, sample names", "Думи, езици, примерни имена", "world"],
   ["gallery", "▦", "Gallery", "Галерия", "Every picture in the world", "Всички картини в света", "world"],
   ["gm", "⚄", "Game master", "Водещ на игра", "Sessions, encounters, initiative, dice", "Сесии, срещи, инициатива, зарове", "play"],
+  ["answers", "✎", "Saved answers", "Запазени отговори", "Answers to questions, to keep or discard", "Отговори на въпроси, за запазване или отхвърляне", "keep"],
   ["contradictions", "⚖", "Contradictions", "Противоречия", "Things that don't add up", "Неща, които не се връзват", "keep"],
   ["milestones", "⚑", "Milestones", "Етапи", "Save, compare, go back", "Запазване, сравнение, връщане", "keep"],
   ["replace", "⇄", "Find & replace", "Търсене и замяна", "Change a word everywhere", "Смяна на дума навсякъде", "keep"],
@@ -47,7 +48,8 @@ const Nav = {
     const pins = Nav.pins().map(v => TOOLS.find(x => x[0] === v)).filter(Boolean);
     $("#nav").innerHTML =
       item("dashboard", "⌂", t("Dashboard")) + item("build", "☾", tf("World-building path", "Пътят на света"), `<span class="count">${Path.overall()}%</span>`)
-      + item("inbox", "✉", t("Inbox"), inbox ? `<span class="count">${inbox}</span>` : "") + item("todo", "☐", tf("To-do", "Задачи"), todos ? `<span class="count">${todos}</span>` : "")
+      + item("inbox", "✉", t("Inbox"), inbox ? `<span class="count">${inbox}</span>` : "")
+      + (typeof Answers !== "undefined" && Answers.count() ? item("answers", "✎", tf("Saved answers", "Запазени отговори"), `<span class="count">${Answers.count()}</span>`) : "") + item("todo", "☐", tf("To-do", "Задачи"), todos ? `<span class="count">${todos}</span>` : "")
       + item("stuck", "✦", t("I'm stuck"), (n ? `<span class="badge" data-contra title="${esc(t("Contradictions"))}">⚖ ${n}</span>` : "") + (stuck ? `<span class="count">${stuck}</span>` : ""))
       + group("world", t("World"), item("browse", "☰", t("Everything"), `<span class="count">${M.entries.size}</span>`)
           + shown.map(ty => item("browse", ty.icon, typeName(ty.key), `<span class="count">${entriesOf(ty.key).length || ""}</span>`, ty.key)).join("")
@@ -93,7 +95,7 @@ Views.tools = (el, r, pane) => {
 function palette() {
   const cmds = [
     [t("New entry"), () => newEntryBox()], [t("Quick note"), () => Capture.open()], [t("I'm stuck"), () => Panes.show({ view: "stuck" })],
-    [tf("All tools", "Всички инструменти"), () => Panes.show({ view: "tools" })], [t("Timeline"), () => Panes.show({ view: "timeline" })], [tf("Calendar", "Календар"), () => Panes.show({ view: "calendar" })], [tf("Date calculator", "Калкулатор за дати"), () => dateCalculator()], [t("Maps"), () => Panes.show({ view: "maps" })], [tf("Make a map", "Създай карта"), () => Panes.show({ view: "mapmaker" })], [tf("Heraldry", "Хералдика"), () => Panes.show({ view: "heraldry" })], [tf("Boards", "Табла"), () => Panes.show({ view: "boards" })], [tf("Game master", "Водещ на игра"), () => Panes.show({ view: "gm" })], [tf("Roll dice", "Хвърли зарове"), () => Panes.show({ view: "gm", id: "dice" })], [tf("Milestones", "Етапи"), () => Panes.show({ view: "milestones" })], [tf("Save a milestone", "Запази етап"), () => Panes.show({ view: "milestones" })], [tf("Save this world as one file", "Запази света като един файл"), () => WorldFile.save()], [t("Relationships"), () => Panes.show({ view: "relations" })],
+    [tf("All tools", "Всички инструменти"), () => Panes.show({ view: "tools" })], [tf("Saved answers", "Запазени отговори"), () => Panes.show({ view: "answers" })], [t("Timeline"), () => Panes.show({ view: "timeline" })], [tf("Calendar", "Календар"), () => Panes.show({ view: "calendar" })], [tf("Date calculator", "Калкулатор за дати"), () => dateCalculator()], [t("Maps"), () => Panes.show({ view: "maps" })], [tf("Make a map", "Създай карта"), () => Panes.show({ view: "mapmaker" })], [tf("Heraldry", "Хералдика"), () => Panes.show({ view: "heraldry" })], [tf("Boards", "Табла"), () => Panes.show({ view: "boards" })], [tf("Game master", "Водещ на игра"), () => Panes.show({ view: "gm" })], [tf("Roll dice", "Хвърли зарове"), () => Panes.show({ view: "gm", id: "dice" })], [tf("Milestones", "Етапи"), () => Panes.show({ view: "milestones" })], [tf("Save a milestone", "Запази етап"), () => Panes.show({ view: "milestones" })], [tf("Save this world as one file", "Запази света като един файл"), () => WorldFile.save()], [t("Relationships"), () => Panes.show({ view: "relations" })],
     [t("Contradictions"), () => Panes.show({ view: "contradictions" })], [t("Settings"), () => Panes.show({ view: "settings" })], [t("Export"), () => Exporter.dialog()],
     [tf("Help", "Помощ"), () => Panes.show({ view: "help" })], [tf("World-building path", "Пътят на света"), () => Panes.show({ view: "build" })],
     [tf("To-do", "Задачи"), () => Panes.show({ view: "todo" })], [tf("New to-do", "Нова задача"), () => Todos.add()], [tf("Random tables", "Случайни таблици"), () => Panes.show({ view: "tables" })],

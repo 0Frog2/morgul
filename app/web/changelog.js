@@ -1,6 +1,13 @@
 // What's new, newest first. Shown once after each update (Settings → Morgul → What's new shows it again).
 // Add an entry here and bump app/version.json for every release.
 const APP_CHANGELOG = [
+  { v: "1.9.0", items: [
+    "<b>Saved answers:</b> every answer you gave to Morgul's questions, from every entry, on one page — grouped by entry with its question. <b>Keep in text</b>, <b>Discard</b>, or <b>Open</b> the entry beside the list. Filter by type and search.",
+    "It appears in the sidebar under Inbox while answers are waiting (with how many), and in All tools; I'm stuck shows a reminder card.",
+  ], bg: [
+    "<b>Запазени отговори:</b> всички отговори на въпросите на Morgul от всички записи на една страница — групирани по запис, с въпроса. <b>Запази в текста</b>, <b>Отхвърли</b> или <b>Отвори</b> записа до списъка. Филтър по вид и търсене.",
+    "Появява се в лентата под Входящи, докато има чакащи отговори (с броя им), и във Всички инструменти; Блокирах показва напомняне.",
+  ] },
   { v: "1.8.1", items: [
     "<b>Delete a map:</b> on the Maps page, rest the mouse on a map and press 🗑 in its corner, or press 🗑 Delete at the top of a map. Morgul asks first; the map goes to the Trash with its pins, routes and layers, and can be restored from there.",
   ], bg: [

@@ -68,6 +68,9 @@ const TIP_TEXT = [
   ["Turn right", "Завърти надясно", "Turn the map a quarter to the right.", "Завърта картата на четвърт надясно."],
   ["Find the paper again", "Намери листа пак", "Let Morgul look for the paper's corners again.", "Morgul търси ъглите на листа отново."],
   ["Undo clicks", "Отмени щракванията", "Forget the areas you swapped between land and sea.", "Забравя областите, които сменихте."],
+  ["Keep in text", "Запази в текста", "Add this answer to the end of its entry's text.", "Добавя отговора в края на текста на записа."],
+  ["Discard", "Отхвърли", "Throw this answer away (Morgul asks first on the Saved answers page).", "Изхвърля отговора."],
+  ["Review", "Прегледай", "Open Saved answers: every answer waiting in one place.", "Отваря Запазени отговори: всички чакащи отговори на едно място."],
   ["Center horizontally", "Центрирай хоризонтално", "Move the figures to the middle, left to right.", "Мести фигурите в средата, хоризонтално."],
   ["Center vertically", "Центрирай вертикално", "Move the figures to the middle, top to bottom.", "Мести фигурите в средата, вертикално."],
 ];
@@ -80,6 +83,7 @@ const TIP_NAV = {
   dashboard: ["Your starting page: what you worked on last, writing today, what needs attention.", "Началната страница: последната работа, писането днес, какво иска внимание."],
   build: ["The world-building path: questions in 11 stages, from the premise to the finished world, with how complete it is.", "Пътят на света: въпроси в 11 етапа, от идеята до готовия свят."],
   inbox: ["Quick notes waiting to be sorted into entries (Ctrl+Space adds one).", "Бързи бележки, които чакат да станат записи (Ctrl+Space добавя)."],
+  answers: ["Saved answers: your answers to Morgul's questions from every entry, waiting to be kept in the text or discarded. Shows only when some are waiting.", "Запазени отговори: отговорите ви от всички записи, които чакат да бъдат запазени или отхвърлени."],
   todo: ["Your to-do list: things to write, check or decide.", "Задачи: какво да напишете, проверите или решите."],
   stuck: ["Ideas for what to work on: thin entries, missing names, open threads, questions. A ⚖ number means contradictions.", "Идеи над какво да работите: тънки записи, липсващи имена, отворени нишки. ⚖ са противоречия."],
   tools: ["Every tool in one place. ☆ pins a tool to the sidebar.", "Всички инструменти на едно място. ☆ закача инструмент в лентата."],

@@ -1,8 +1,8 @@
 {
-  "version": "1.8.1",
-  "date": "2026-11-17",
+  "version": "1.9.0",
+  "date": "2026-11-25",
   "repo": "0Frog2/morgul",
   "notes": [
-    "Delete maps (to the Trash, with confirmation)"
+    "Saved answers: every answer from question sessions in one place"
   ]
 }

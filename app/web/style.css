@@ -567,3 +567,9 @@ textarea.tidy-pane { width: 100%; resize: none; font: 14px/1.55 var(--sans); col
 .map-del { position: absolute; top: 8px; right: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 6px; padding: 3px 7px; cursor: pointer; opacity: 0; transition: opacity .15s; }
 .ecard[data-map]:hover .map-del { opacity: 1; }
 .map-del:hover { color: var(--danger); border-color: var(--danger); }
+
+/* 1.9.0 saved answers */
+.ans-group { margin-bottom: 12px; }
+.ans-group .ans-title { font: 600 16px var(--serif); cursor: pointer; }
+.ans-group .notes-box { margin-top: 8px; }
+.ans-remind { margin-bottom: 12px; border-color: var(--accent); }
